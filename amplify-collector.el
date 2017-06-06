@@ -60,5 +60,24 @@
    amplify/current-release-dir
    "amplify-" amplify/current-version "-osx-dbg collect"))
 
+(defun amplify/flush-collector ()
+  "Make the collector persist any dirty reports it has collected."
+  (interactive)
+  (amplify/reporter-send :mode-name major-mode
+                         :action "flush collector"
+                         :request-number amplify/request-number
+                         :duration-nanos 0
+                         :command "flush"))
+
+(defun amplify/kill-collector ()
+  "Kill the collector process."
+  (interactive)
+  (amplify/reporter-send :mode-name major-mode
+                         :action "exit"
+                         :request-number amplify/request-number
+                         :command "exit"
+                         :duration-nanos 0))
+
+
 (provide 'amplify-collector)
 ;;; amplify-collector.el ends here

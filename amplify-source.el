@@ -42,16 +42,18 @@
 (require 'amplify-reporter (amplify/path "amplify-reporter.el"))
 
 (defvar amplify/source nil)
-(make-local-variable 'amplify/source) ;; Each buffer maintains its own source
 
-(defun amplify/source-connect ()
-  "Connect the Source."
-  (unless amplify/source
-    (make-local-variable 'amplify/source)  ;; Each buffer maintains its own source
-    (setq amplify/source (-> (cereal/uclient-new)
-                             (cereal/uclient-connect)))
-    ;; (cereal/cclient-set-linger amplify/source 0) ;; TODO: Do I even need this?
-    (cereal/cclient-set-send-timeout amplify/source 1)
+(defun amplify/source-connect (&optional force)
+  "Connect the Source.
+If FORCE is truthy, connect regardless of whether there already was a connection."
+  (unless (or amplify/source force)
+    (setq amplify/source (-> (amplify-elisp/uclient-new)
+                             (amplify-elisp/uclient-connect)))
+    ;; (amplify-elisp/cclient-set-linger amplify/source 0) ;; TODO: Do I even need this?
+    (amplify-elisp/cclient-set-send-timeout    amplify/source  1)
+    (amplify-elisp/cclient-set-receive-timeout amplify/source 10)
+    (amplify-elisp/cclient-set-send-hwm    amplify/source 1000)
+    (amplify-elisp/cclient-set-receive-hwm amplify/source 1000)
     (amplify/log "connected source"))
   t)
 
@@ -63,17 +65,20 @@
     (amplify/log "disconnected source"))
   t)
 
-
+(defun amplify/source-reconnect ()
+  "Reconnect the Source."
+  (progn (amplify/source-disconnect)
+         (amplify/source-connect)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                              Request handling                              ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defvar amplify/request-number 1 "Number of the request most recently issued.
-The only valid values are positive numbers, so counting starts at 1.")
-(make-local-variable 'amplify/request-number) ;; Each buffer maintains its own request number
+(defvar amplify/request-number 0 "Number of the request most recently issued.
+The only valid values are positive numbers, the first issues number is 1.")
+;; (make-local-variable 'amplify/request-number) ;; Each buffer maintains its own request number
 
-(defvar amplify/most-recent-request nil "The request most recently issued.")
+;; (defvar amplify/most-recent-request nil "The request most recently issued.")
 
 (defun amplify/next-request-number ()
   "Return the next request number."
@@ -106,7 +111,7 @@ The only valid values are positive numbers, so counting starts at 1.")
 ;;          (process "Emacs")
 ;;          ;; (kind "kind of msg ???") ;; TODO:
 ;;          (kind "request")
-;;          (request (cereal/msg :process process :request-number reqno :kind kind
+;;          (request (amplify-elisp/msg :process process :request-number reqno :kind kind
 ;;                               :origin ""
 ;;                               :contents ""
 ;;                               :regions ""
@@ -131,7 +136,7 @@ The only valid values are positive numbers, so counting starts at 1.")
 
 
 
-(cl-defun amplify/source-send (&key mode-name kind buffer contents regions language ast)
+(cl-defun amplify/source-send (&key kind buffer contents regions language ast)
   "Make the Source send a message.  The following keys are significant:
 MODE-NAME: The name of the mode deriving from `amplify-mode'.
 KIND: What the Msg represents, e.g. 'parse', 'analyze', 'analysis result',
@@ -141,24 +146,34 @@ CONTENTS: The Msg contents.  May be nil, a string, or a list of strings.
 REGIONS: A list of (begin . end) conses, indicating regions in the sending
     buffer. May be nil as that equals the empty list.
 LANGUAGE: The language of the Contents / AST if applicable, otherwise nil.
-AST: either nil (default) or a plistified AST, see `cereal/ast-plistify'."
+AST: either nil (default) or a plistified AST, see `amplify-elisp/ast-plistify'."
   (unless amplify/source
     (error "Source is not connected"))
-  (unless (stringp buffer)
-    (error "Expected a string name for 'buffer'"))
-  (let ((mode-name (cond ((symbolp mode-name) (symbol-name mode-name))
-                         ((stringp mode-name) mode-name)
-                         (t (error "Expected a string or symbol for mode-name")))))
-    (cereal/cclient-send amplify/source
-                         (cereal/msg :process (concat "Emacs/" mode-name)
-                                     :request-number (amplify/next-request-number)
-                                     :kind kind
-                                     :origin buffer
-                                     :contents contents
-                                     :regions regions
-                                     :language language
-                                     :ast ast))
-    t))
+  (unless (or (bufferp buffer) (stringp buffer))
+    (error "Expected a buffer or a string name for 'buffer'"))
+  (let* ((buffer (if (bufferp buffer)  buffer  (get-buffer buffer)))
+         (mode-name (with-current-buffer buffer
+                      (symbol-name major-mode)))
+         (process (concat "emacs " mode-name))
+         (request-number (amplify/next-request-number))
+         (msg (amplify-elisp/msg :process process
+                                 :request-number request-number
+                                 :kind kind
+                                 :origin (buffer-file-name)
+                                 :contents contents
+                                 :regions regions
+                                 :language language
+                                 :ast ast))
+         (result (amplify-elisp/cclient-send amplify/source msg)))
+    (cond ((eq result :reconnect)  (progn
+                                     (amplify/source-reconnect) ;; TODO: what does this even return?!
+                                     (amplify/log "ERROR: failed to send msg[%s, %d]: %s"
+                                                  process  request-number  kind)))
+          ((eq result t)           (progn
+                                     (amplify/log "sent msg[%s, %d]: %s"
+                                                  process  request-number  kind)
+                                     msg))
+          ((eq result nil)         msg))))
 
 
 (provide 'amplify-source)

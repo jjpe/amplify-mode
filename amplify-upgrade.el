@@ -76,16 +76,17 @@ If the TARGET-DIR already exists, skip the extraction."
       (amplify/log "Extracted dir @ %s" target-dir))))
 
 (defun amplify/query-latest-release ()
-  "Query GitHub for the latest Amplify release information, using the REST API v3."
-  (let* ((url-base "https://api.github.com/repos/jjpe/")
-         ;; (spoofax-server-url (concat url-base "spoofax-server/releases/latest"))
-         ;; (spoofax-server-latest-version
-         ;;  (->> (json-read)
-         ;;       (assoc 'tag_name)
-         ;;       cdr
-         ;;       (with-current-buffer (url-retrieve-synchronously spoofax-server-url))))
-         (amplify-url (concat url-base "libcereal/releases/latest")))
-    (with-current-buffer (url-retrieve-synchronously amplify-url)
+  "Query GitHub for the latest Amplify release information."
+  (amplify/fetch-latest-release "libcereal"))
+
+(cl-defun amplify/fetch-latest-release (project &key author)
+  "Query GitHub for the latest release information for a PROJECT by AUTHOR.
+AUTHOR is a keyword argument that can be omitted, and defaults to \"jjpe\".
+This function uses the GitHub REST API v3. "
+  (let* ((author (or author "jjpe"))
+         (url (format "https://api.github.com/repos/%s/%s/releases/latest"
+                      author project)))
+    (with-current-buffer (url-retrieve-synchronously url)
       (->> (json-read)
            (assoc 'tag_name)
            cdr))))
@@ -103,13 +104,13 @@ Files that already exist won't be downloaded again."
   (let* ((new-dir-path (concat amplify/releases-dir semver "/"))
          (url-base "https://github.com/jjpe/libcereal/releases/download/")
          (amplify-url (concat url-base semver "/amplify-" semver "-osx"))
-         (amplify-bin (concat new-dir-path "/amplify-" semver "-osx"))
+         (amplify-bin (concat new-dir-path "amplify-" semver "-osx"))
          (amplify-dbg-url (concat url-base semver "/amplify-" semver "-osx-dbg"))
-         (amplify-dbg-bin (concat new-dir-path "/amplify-" semver "-osx-dbg"))
+         (amplify-dbg-bin (concat new-dir-path "amplify-" semver "-osx-dbg"))
          (monto-url (concat url-base semver "/monto-" semver "-osx"))
-         (monto-bin (concat new-dir-path "/monto-" semver "-osx"))
+         (monto-bin (concat new-dir-path "monto-" semver "-osx"))
          (monto-dbg-url (concat url-base semver "/monto-" semver "-osx-dbg"))
-         (monto-dbg-bin (concat new-dir-path "/monto-" semver "-osx-dbg"))
+         (monto-dbg-bin (concat new-dir-path "monto-" semver "-osx-dbg"))
          ;; (settings-url "https://raw.githubusercontent.com/jjpe/spoofax-server/master/settings.json")
          ;; (settings-file (concat new-dir-path "settings.json"))
          )
@@ -132,9 +133,9 @@ Files that already exist won't be downloaded again."
 
 
 (defun amplify/switch-version (semver)
-  "Download and switch to the Amplify SEMVER version e.g. \"0.9.10.\".
+  "Download and switch to Amplify SEMVER version e.g. \"0.9.10.\".
 This explicitly does not stop or start any processes, that must be done separately."
-  ;; TODO: persistence of current version, especially when Amplify was upgraded.
+  ;; TODO: persistence of new SEMVER, especially when Amplify was upgraded.
   (amplify/download-release semver)
   (setq amplify/current-version      semver)
   (setq amplify/current-release-dir  (concat  amplify/releases-dir  semver  "/")))
@@ -167,7 +168,6 @@ START-FN-DOCSTRING is the docstring for the generated amplify/*-start! function.
            (pred-fn          `(lambda () ,start-predicate))
            ;; Helper bindings, derived from input:
            (proc-sym         (make-amplify-sym spec-var '-process))
-           (proc-refcount-sym  (make-amplify-sym spec-var '-process-refcount))
            (proc-name        (make-name spec-var))
            (buffer-name      (make-name spec-var "out"))
            (start-sym        (make-amplify-sym 'start- spec-var '!))
@@ -178,27 +178,15 @@ START-FN-DOCSTRING is the docstring for the generated amplify/*-start! function.
                                      proc-name buffer-name)))
       `(progn
          (defvar ,proc-sym nil) ;; Intended to be global
-         (defvar ,proc-refcount-sym 0) ;; Since proc-sym is global, so is this
          (intern (symbol-name ',proc-sym))
          (defun ,start-sym ()
            ,start-docstring
            ,(if (eq nil start-pred-var)
-                ;; TODO: Ref count the process so that the global processes will
-                ;;       only be stopped when the last buffer has been closed.
-                ;;
-                ;; `(setq ,proc-sym (start-process-shell-command
-                ;;                   ,proc-name ,buffer-name ,command))
-                `(progn (when (zerop ,proc-refcount-sym)
-                          (setq ,proc-sym (start-process-shell-command
-                                           ,proc-name ,buffer-name ,command)))
-                        (incf ,proc-refcount-sym))
+                `(unless (process-live-p (get-process ,proc-name))
+                   (start-process-shell-command ,proc-name ,buffer-name ,command))
               `(if (,pred-fn)
-                   ;; (setq ,proc-sym (start-process-shell-command
-                   ;;                  ,proc-name ,buffer-name ,command))
-                   (progn (when (zerop ,proc-refcount-sym)
-                            (setq ,proc-sym (start-process-shell-command
-                                             ,proc-name ,buffer-name ,command)))
-                          (incf ,proc-refcount-sym))
+                   (unless (process-live-p (get-process ,proc-name))
+                     (start-process-shell-command ,proc-name ,buffer-name ,command))
                  (error "Couldn't start process %s, start-predicate failed: %s"
                         ,proc-name
                         ',start-pred-var)))
@@ -207,14 +195,28 @@ START-FN-DOCSTRING is the docstring for the generated amplify/*-start! function.
            )
          (defun ,stop-sym ()
            ,stop-docstring
-           (decf ,proc-refcount-sym)
-           (when (and (zerop ,proc-refcount-sym)
-                      (eq (process-status ,proc-name) 'run))
+           (when (and (eq (process-status ,proc-name) 'run)
+                      (zerop (length (amplify/find-all-descendant-buffers))))
              (stop-process ,proc-name)
              (delete-process ,proc-name)
              ;; (funcall (amplify/get-buffer-kill-fn) (get-buffer ,buffer-name))
              (setq ,proc-sym nil)))))))
 
+
+(defun amplify/descendant-mode? (major-mode)
+  "Return t if and only if the MAJOR-MODE of the current buffer is derived from `amplify-mode'."
+  (let ((mode major-mode)
+        parents)
+    (while mode
+      (setq parents (cons mode parents)
+            mode (get mode 'derived-mode-parent)))
+    (member 'amplify-mode parents)))
+
+(defun amplify/find-all-descendant-buffers ()
+  "Return all live buffers with a `major-mode' derived from `amplify-mode'."
+  (loop for buf in (buffer-list)
+        if (amplify/descendant-mode? (with-current-buffer buf major-mode))
+        collect buf))
 
 
 

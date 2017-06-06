@@ -47,8 +47,8 @@
 
 (require 'dash) ;; Threading operators (->, ->>)
 (require 'amplify-log)
-(require 'libcereal
-         "../libcereal-elisp/libcereal.el" ;; TODO: remove the hard-coded path
+(require 'amplify-elisp
+         "../amplify-elisp/amplify-elisp.el" ;; TODO: remove the hard-coded path
          )
 
 

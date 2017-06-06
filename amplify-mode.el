@@ -1,6 +1,9 @@
 ;;; amplify-mode.el --- Amplify mode
 (setq lexical-binding t)
 
+;; TODO: Amplify.toml support
+;; TODO: support OSes other than OS X
+
 ;; Copyright (c) 2015-2017, Joey Ezechiëls
 ;; All rights reserved.
 
@@ -82,20 +85,13 @@ explicitly included."
 
 
 
-(defvar amplify-mode-shared-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map prog-mode-map)
-    ;; (define-key map "\e\C-q" 'indent-sexp)
-    ;; (define-key map "\177" 'backward-delete-char-untabify)
-
-    ;; TODO: Add key bindings for:
-    ;;        * start
-    ;;        * open project
-    ;;        * close project
-    ;;        * stop
-    ;;        * restart
-    map)
-  "Key map for commands shared by all sorts of Amplify modes.")
+(defcustom amplify/sink-functions nil
+  "A list of hooks run when Amplify has an incoming MSG.
+Deriving modes can use this to asynchronously get access.
+To do so, functions are added to this list that take an arg list (BUFFER MSG)."
+  :options '(imenu-add-menubar-index)
+  :type 'hook
+  :group 'amplify)
 
 ;; (defcustom amplify-mode-hook nil
 ;;   "Hook run when entering Amplify mode."
@@ -111,77 +107,70 @@ explicitly included."
 
 
 
-;;; Generic Amplify mode.
 
 (defvar amplify-mode-map
   (let ((map (make-sparse-keymap))
         (menu-map (make-sparse-keymap "Amplify")))
-    (set-keymap-parent map amplify-mode-shared-map)
-    ;; (define-key map "\e\C-x" 'lisp-eval-defun)
-    ;; (define-key map "\C-c\C-z" 'run-lisp)
-    ;; (bindings--define-key map [menu-bar lisp] (cons "Lisp" menu-map))
-    ;; (bindings--define-key menu-map [run-lisp]
-    ;;   '(menu-item "Run inferior Lisp" run-lisp
-    ;;               :help "Run an inferior Lisp process, input and output via buffer `*inferior-lisp*'"))
-    ;; (bindings--define-key menu-map [ev-def]
-    ;;   '(menu-item "Eval defun" lisp-eval-defun
-    ;;               :help "Send the current defun to the Lisp process made by M-x run-lisp"))
-    ;; (bindings--define-key menu-map [ind-sexp]
-    ;;   '(menu-item "Indent sexp" indent-sexp
-    ;;               :help "Indent each line of the list starting just after point"))
+    (set-keymap-parent map prog-mode-map)
     map)
-  "Keymap for ordinary Amplify mode.
+  "Keymap for Amplify mode.
 All commands in `amplify-mode-shared-map' are inherited by this map.")
 
 
 
 (define-derived-mode amplify-mode prog-mode "Amplify"
   "Raw Amplify mode. Not really intended for direct consumption.
-Rather, it is meant as infrastructure for other modes similarly to Lisp mode.
-
-‘\[command]’, ‘\{keymap}’, and ‘\<keymap>’
-"
+Rather, it is meant as infrastructure for other modes to inherit from.
+That will make it easier to build IDE-like functionality for multiple languages.
+\\{amplify-mode-map}"
   (amplify/download-release amplify/current-version)
-  (amplify/start-broadcaster!)
-  ;; (amplify/start-broadcaster-dbg!)
-  ;; (monto/start-brokers!)
-  ;; (monto/start-brokers-dbg!)
-  (amplify/start-collector!) ;; Receives and records Reports
-  (amplify/reporter-connect) ;; Sends Reports from various points in the tool graph
+
+  (amplify/install-packages
+   'rainbow-delimiters
+   'rainbow-mode
+   'smartparens
+   'whitespace)
+
+  (unless (process-live-p (get-process "*Broadcaster*"))
+    ;; (amplify/start-broadcaster-dbg!)
+    ;; (monto/start-brokers!)
+    ;; (monto/start-brokers-dbg!)
+    (amplify/start-broadcaster!))
+  (unless (process-live-p (get-process "*Collector*"))
+    (amplify/start-collector!))
+
+  (amplify/reporter-connect)
   (amplify/sink-connect)
   (amplify/source-connect)
-  ;; (amplify/source-send :process "Emacs tester"
-  ;;                      :request-number 300
-  ;;                      :kind "test msg"
-  ;;                      :origin "origin"
-  ;;                      :contents '("contents line 0"  "contents line 1")
-  ;;                      :regions '((0 1)  (1 2))
-  ;;                      :language "Mxsptlk"
-  ;;                      :ast nil)
 
-  ;; TODO: Init amplify state using buffer-local variables
+  ;; TODO: this is just a prototype
+  ;; (add-hook 'amplify/sink-functions
+  ;;           (lambda (buffer msg)
+  ;;             (amplify/log "Calling a sink function on msg:\n%s" msg)))
+
+  (amplify/set-sink-timer amplify/sink-poll-interval)
+  (amplify/set-sink-idle-timer amplify/sink-idle-timeout)
+
+  (add-hook 'after-change-major-mode-hook 'amplify/try-shutdown)
   )
 
-
-
-
-;; (define-derived-mode lisp-mode prog-mode "Lisp"
-;;   "Major mode for editing Lisp code for Lisps other than GNU Emacs Lisp.
-;; Commands:
-;; Delete converts tabs to spaces as it moves back.
-;; Blank lines separate paragraphs.  Semicolons start comments.
-;; \\{lisp-mode-map}
-;; Note that `run-lisp' may be used either to start an inferior Lisp job
-;; or to switch back to an existing one."
-;;   (lisp-mode-variables nil t)
-;;   (setq-local find-tag-default-function 'lisp-find-tag-default)
-;;   (setq-local comment-start-skip
-;;               "\\(\\(^\\|[^\\\\\n]\\)\\(\\\\\\\\\\)*\\)\\(;+\\|#|\\) *")
-;;   (setq imenu-case-fold-search t))
+(defun amplify/try-shutdown ()
+  "Try to shut `amplify-mode' down."
+  (when (zerop (length (amplify/find-all-descendant-buffers)))
+    (amplify/cancel-sink-timer)
+    (amplify/cancel-sink-idle-timer)
+    (amplify/stop-broadcaster!)
+    (amplify/stop-collector!)
+    (remove-hook 'after-change-major-mode-hook 'amplify/try-shutdown)))
 
 
 
 
+(defun amplify/install-packages (&rest packages)
+  "Ensure that all PACKAGES (which consists of symbols) are installed."
+  (loop for package in packages
+        do (unless (package-installed-p package)
+             (package-install package))))
 
 
 

@@ -52,17 +52,18 @@
 ;;                    #'rainbow-delimiters-mode)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                     Sink                                                   ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defvar amplify/sink nil)
-(make-local-variable 'amplify/sink) ;; Each buffer maintains its own sink
 
 (defun amplify/sink-connect ()
   "Connect the Sink."
   (unless amplify/sink
-    (make-local-variable 'amplify/sink) ;; Each buffer maintains its own sink
-    (setq amplify/sink (-> (cereal/uclient-new)
-                           (cereal/uclient-connect)))
-    ;; (cereal/cclient-set-linger amplify/sink 0) ;; TODO: Do I even need this?
-    (cereal/cclient-set-receive-timeout amplify/sink 1)
+    (setq amplify/sink (-> (amplify-elisp/uclient-new)
+                           (amplify-elisp/uclient-connect)))
+    ;; (amplify-elisp/cclient-set-linger amplify/sink 0) ;; TODO: Do I even need this?
+    (amplify-elisp/cclient-set-receive-timeout amplify/sink 1)
     (amplify/log "connected sink"))
   t)
 
@@ -74,19 +75,120 @@
     (amplify/log "disconnected sink"))
   t)
 
+
 (defun amplify/sink-receive ()
   "Receive a Msg."
-  (unless amplify/sink
-    (error "Sink is not connected"))
-  (let ((msg (cereal/msg-new)))
-    (cereal/cclient-receive amplify/sink msg)
-    msg))
+  (unless amplify/sink  (error "Sink is not connected"))
+  (let ((msg (amplify-elisp/msg-new)))
+    (pcase (amplify-elisp/cclient-receive amplify/sink msg)
+      (:interrupted  nil)
+      (:no-msg       nil)
+      (_  (->> (amplify-elisp/msg-plistify msg)
+               (amplify/drop-msg-if
+                (lambda (msg) (string-prefix-p "emacs " (plist-get msg :process))))
+               ;; Add more filters here
+               )))))
 
 
-(defvar amplify/sink-poll-interval 0.1 ;; 0.25
-  "This determines how often the Sink will look for messages from the Broker.
-Its value is specified in seconds, and may be a decimal number.")
+(defun amplify/drop-msg-if (pred msg-plist)
+  "Apply PRED to MSG-PLIST.  Return nil if (PRED MSG-PLIST) is truthy.
+Otherwise return MSG.  That it, the predicates specify \"filter out\" conditions."
+  (when msg-plist
+    (if (funcall pred msg-plist)
+        (progn (amplify/log "dropped msg[%s, %d]: %s"
+                            (plist-get msg-plist :process)
+                            (plist-get msg-plist :request-number)
+                            (plist-get msg-plist :kind))
+               nil)
+        msg-plist)))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                     Sink timer                                             ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defvar amplify/sink-poll-interval 0.1
+  "The time interval between the moments where the Sink looks for new messages.
+Its value is specified in seconds, and may be a decimal number.
+The default is to check each 100 ms.")
+
+(defvar amplify/sink-idle-timeout 30
+  "The time in seconds the user is idle, before the sink timer is canceled.
+The default is 30 seconds.")
+
+(defvar amplify/sink-timer nil
+  "A global (i.e. shared across buffers) var that starts the scan for new msgs.")
+
+(defvar amplify/sink-idle-timer nil
+  "A global (i.e. shared across buffers) var.
+It runs when the user has been inactive for `amplify/sink-idle-timeout' seconds.")
+
+(defun amplify/set-sink-timer (&optional period)
+  "Set `amplify/sink-timer', and execute `amplify/sink-timer-fn' every PERIOD seconds."
+  (unless (timerp amplify/sink-timer)
+    (let ((period (or period amplify/sink-poll-interval)))
+      ;; (amplify/cancel-sink-timer)
+      (setq amplify/sink-timer
+            (run-at-time  period  period  #'amplify/sink-timer-fn))
+      (amplify/log "set sink timer"))))
+
+(defun amplify/cancel-sink-timer ()
+  "Reset `amplify/sink-timer'."
+  (when (and (timerp amplify/sink-timer)
+             (zerop (length (amplify/find-all-descendant-buffers))))
+    (cancel-timer amplify/sink-timer)
+    (amplify/log "canceled sink timer")
+    (setq amplify/sink-timer nil)))
+
+(defun amplify/set-sink-idle-timer (timeout)
+  "Set `amplify/sink-idle-timer' to TIMEOUT seconds.
+The timer runs when the user has been inactive for that amount of time."
+  (unless (timerp amplify/sink-idle-timer)
+    (setq amplify/sink-idle-timer
+          (run-with-idle-timer timeout :repeat 'amplify/cancel-sink-timer))
+    (amplify/log "set sink idle timer")))
+
+(defun amplify/cancel-sink-idle-timer ()
+  "Reset `amplify/sink-idle-timer'."
+  (when (and (timerp amplify/sink-idle-timer)
+             (zerop (length (amplify/find-all-descendant-buffers))))
+    (cancel-timer amplify/sink-idle-timer)
+    (amplify/log "canceled sink idle timer")
+    (setq amplify/sink-idle-timer nil)))
+
+
+(defconst amplify/null-msg (->> (amplify-elisp/msg-new)
+                                (amplify-elisp/msg-plistify)))
+
+(defun amplify/is-null-msg? (msg-plist)
+  "Return t if MSG-PLIST equals the null msg."
+  (equal amplify/null-msg msg-plist))
+
+
+
+(cl-defun amplify/sink-timer-fn ()
+  "Check if there is a new MSG.
+If there is, call `amplify/sink-functions' in each amplify buffer."
+  (let* (;;(inhibit-modification-hooks t) ;; TODO: Inhibit change hooks here?
+         (msg-plist (amplify/sink-receive))
+         (msg-process (plist-get msg-plist :process))
+         (msg-reqno (plist-get msg-plist :request-number))
+         (msg-kind (plist-get msg-plist :kind)))
+    (when (and msg-plist (not (amplify/is-null-msg? msg-plist)))
+      (unless (eq amplify/request-number msg-reqno)
+        ;; Old messages are ignored
+        (amplify/log "dropped old msg[%s, %d]: %s"  msg-process  msg-reqno  msg-kind)
+        (return-from 'spoofax/spoofax-mode-sink-fn nil))
+      (amplify/log "received msg[%s, %d]: %s"  msg-process  msg-reqno  msg-kind)
+      (loop for amplify-buffer in (amplify/find-all-descendant-buffers)
+            do (with-current-buffer amplify-buffer
+                 ;; Invoke all non-standard hooks in `amplify/sink-functions',
+                 ;; which must be a local binding for each buffer with (some
+                 ;; descendant of) `amplify-mode' as its `major-mode'.  This
+                 ;; way, each buffer in any descendant mode can decide on its
+                 ;; own how to act on the received Msg.
+                 (run-hook-with-args 'amplify/sink-functions
+                                     amplify-buffer
+                                     msg-plist))))))
 
 
 
@@ -133,139 +235,83 @@ Its value is specified in seconds, and may be a decimal number.")
 
 
 
-(defun spoofax/update-feedback (source-string contents request-number)
-  ""
-  (let* ((json-key-type 'string)
-         (bufname (file-name-nondirectory source-string))
-         (results (spoofax/measure
-                      (let* ((feedback-items
-                              (->> contents
-                                   json-read-from-string
-                                   (mapcar #'json-read-from-string)
-                                   (mapcar (lambda (msg)
-                                             (split-string msg "||"))))))
-                        (when spoofax/clear-fontification?
-                          (setq spoofax/clear-fontification? nil)
-                          (spoofax/clear-tooltips (point-min) (point-max)))
-                        (with-current-buffer bufname
-                          (loop for item in feedback-items
-                                do (spoofax/highlight-feedback-item item))))))
-         (duration-nanos (first results)))
-    (spoofax/report :action "updated feedback"
-                    :process "emacs-sink"
-                    :revision request-number
-                    :duration-nanos duration-nanos)
-    (message "[spoofax] Updated feedback (@ %s s, took %5d ms)"
-             (spoofax/time-since-request)
-             (/ duration-nanos spoofax/ns-per-ms))))
+;; (defun spoofax/update-feedback (source-string contents request-number)
+;;   ""
+;;   (let* ((json-key-type 'string)
+;;          (bufname (file-name-nondirectory source-string))
+;;          (results (spoofax/measure
+;;                       (let* ((feedback-items
+;;                               (->> contents
+;;                                    json-read-from-string
+;;                                    (mapcar #'json-read-from-string)
+;;                                    (mapcar (lambda (msg)
+;;                                              (split-string msg "||"))))))
+;;                         (when spoofax/clear-fontification?
+;;                           (setq spoofax/clear-fontification? nil)
+;;                           (spoofax/clear-tooltips (point-min) (point-max)))
+;;                         (with-current-buffer bufname
+;;                           (loop for item in feedback-items
+;;                                 do (spoofax/highlight-feedback-item item))))))
+;;          (duration-nanos (first results)))
+;;     (spoofax/report :action "updated feedback"
+;;                     :process "emacs-sink"
+;;                     :revision request-number
+;;                     :duration-nanos duration-nanos)
+;;     (message "[spoofax] Updated feedback (@ %s s, took %5d ms)"
+;;              (spoofax/time-since-request)
+;;              (/ duration-nanos spoofax/ns-per-ms))))
 
-(defun spoofax/update-coloring (contents request-number)
-  ""
-  (let* ((results (->> (loop for item across (json-read-from-string contents)
-                             do (spoofax/highlight-coloring-item item))
-                       (spoofax/measure)))
-         (duration-nanos (first results)))
-    (spoofax/report :action "updated coloring"
-                    :process "emacs-sink"
-                    :revision request-number
-                    :duration-nanos duration-nanos)
-    (message "[spoofax] Updated coloring (@ %s s, took %5d ms)"
-             (spoofax/time-since-request)
-             (/ duration-nanos spoofax/ns-per-ms))))
+;; (defun spoofax/update-coloring (contents request-number)
+;;   ""
+;;   (let* ((results (->> (loop for item across (json-read-from-string contents)
+;;                              do (spoofax/highlight-coloring-item item))
+;;                        (spoofax/measure)))
+;;          (duration-nanos (first results)))
+;;     (spoofax/report :action "updated coloring"
+;;                     :process "emacs-sink"
+;;                     :revision request-number
+;;                     :duration-nanos duration-nanos)
+;;     (message "[spoofax] Updated coloring (@ %s s, took %5d ms)"
+;;              (spoofax/time-since-request)
+;;              (/ duration-nanos spoofax/ns-per-ms))))
 
-(defun spoofax/jump-to-reference (contents)
-  "Jump to a reference, which must be parseable from CONTENTS."
-  (when (string= contents "no resolution found")
-    (beep)
-    (return-from spoofax/jump-to-reference))
-  (let* ((results (spoofax/measure
-                      (let* ((resolution (json-read-from-string contents))
-                             (filepath (spoofax/alist-get resolution 'file))
-                             (start (spoofax/alist-get-int resolution 'start))
-                             (end   (spoofax/alist-get-int resolution 'end)))
-                        (with-current-buffer (find-file filepath)
-                          (goto-char (1+ start))))))
-         (duration-nanos (first results)))
-    (spoofax/report :action "opened resolution"
-                    :process "emacs-sink"
-                    :revision reqno
-                    :duration-nanos duration-nanos)
-    (message "[spoofax] Opened resolution (@ %s s, took %5d ms)"
-             (spoofax/time-since-request)
-             (/ duration-nanos spoofax/ns-per-ms))))
+;; (defun spoofax/jump-to-reference (contents)
+;;   "Jump to a reference, which must be parseable from CONTENTS."
+;;   (when (string= contents "no resolution found")
+;;     (beep)
+;;     (return-from spoofax/jump-to-reference))
+;;   (let* ((results (spoofax/measure
+;;                       (let* ((resolution (json-read-from-string contents))
+;;                              (filepath (spoofax/alist-get resolution 'file))
+;;                              (start (spoofax/alist-get-int resolution 'start))
+;;                              (end   (spoofax/alist-get-int resolution 'end)))
+;;                         (with-current-buffer (find-file filepath)
+;;                           (goto-char (1+ start))))))
+;;          (duration-nanos (first results)))
+;;     (spoofax/report :action "opened resolution"
+;;                     :process "emacs-sink"
+;;                     :revision reqno
+;;                     :duration-nanos duration-nanos)
+;;     (message "[spoofax] Opened resolution (@ %s s, took %5d ms)"
+;;              (spoofax/time-since-request)
+;;              (/ duration-nanos spoofax/ns-per-ms))))
 
-(defun spoofax/update-result-buffer (source-string product contents)
-  ""
-  (let ((since-timestamp (time-since (spoofax/requested-timestamp))))
-    (spoofax/log-info "Request (took %s s): %s"
-                    (format-time-string "%S.%3N" since-timestamp)
-                    spoofax/most-recent-request)
-    (spoofax/with-output-buffer "result"
-        (insert "From \"" source-string "\":\n"
-                "Result type: \"" product "\"\n\n"
-                contents))))
+;; (defun spoofax/update-result-buffer (source-string product contents)
+;;   ""
+;;   (let ((since-timestamp (time-since (spoofax/requested-timestamp))))
+;;     (spoofax/log-info "Request (took %s s): %s"
+;;                     (format-time-string "%S.%3N" since-timestamp)
+;;                     spoofax/most-recent-request)
+;;     (spoofax/with-output-buffer "result"
+;;         (insert "From \"" source-string "\":\n"
+;;                 "Result type: \"" product "\"\n\n"
+;;                 contents))))
 
-(defun spoofax/update-product-buffer (product-alist)
-  ""
-  (when spoofax/show-product-buffer
-    (spoofax/with-output-buffer "product"
-        (insert "Product:\n\n" (pp-to-string product-alist)))))
-
-
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;                              Sink timer                                    ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defvar amplify/sink-timer nil)
-
-(defun amplify/sink-timer-fn ()
-  "Timer function."
-  (let (;; Don’t run any of the hooks that respond to buffer changes while this fn runs
-        (inhibit-modification-hooks t)
-
-        ;; (rx-result (spoofax/measure (zmqdl/receive spoofax/sink-socket)))
-        )
-    (cl-destructuring-bind (recv-nanos response) rx-result
-      (cond ((stringp response)
-             (cl-destructuring-bind (product-nanos product-alist)
-                 (->> response (amplify/to-product-alist) (amplify/measure))
-               (amplify/sink product-alist (+ recv-nanos product-nanos))))
-            ((eq response :no-bytes-read) nil) ;; No messages ready
-            ((eq response :EAGAIN) nil) ;; No messages ready
-            ((eq response :EINTR)  nil) ;; Interrupted (no messages ready)
-            ((eq response :ENOTSUP)
-             (error "Can't receive: Socket does not support receiving"))
-            ((eq response :EFSM)
-             (error "Can't receive: Socket not in the appropriate state"))
-            ((eq response :ETERM)
-             (error "Can't receive: ZMQ context terminated"))
-            ((eq response :ENOTSOCK)
-             (error "Can't receive: amplify/sink-socket is not a valid socket"))
-            (t nil) ;; Glug glug, swallow the garbage
-            ;; (t (error "Invalid response: %s" response)) ;; TODO: reactivate
-            ))))
-
-(defun amplify/set-sink-timer (period)
-  "Set the timer for the Sink.
-This executes the timer function TIMER-FN every PERIOD milliseconds."
-  ;; TODO: write my own change hook, which works like `after-change-functions',
-  ;; except it only fires for buffers opened under spoofax.el.
-  (setq amplify/sink-timer (run-at-time 0 period #'amplify/sink-timer-fn)))
-
-(defun amplify/cancel-sink-timer ()
-  "Reset the Monto sink timer."
-  (when (timerp amplify/sink-timer)
-    (cancel-timer amplify/sink-timer)
-    (setq amplify/sink-timer nil)
-    (message "[amplify] Canceled Sink timer")))
-
-
-
-
-
+;; (defun spoofax/update-product-buffer (product-alist)
+;;   ""
+;;   (when spoofax/show-product-buffer
+;;     (spoofax/with-output-buffer "product"
+;;         (insert "Product:\n\n" (pp-to-string product-alist)))))
 
 
 (provide 'amplify-sink)

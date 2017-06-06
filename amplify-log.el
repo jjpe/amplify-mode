@@ -46,7 +46,7 @@
   "Log a message.
 FMT-STRING: A string that can contain string format arguments.
 ARGS: Any arguments to FMT-STRING."
-  (message "[amplify] %s" (format fmt-string args)))
+  (message "[amplify] %s" (apply #'format fmt-string args)))
 
 
 (provide 'amplify-log)

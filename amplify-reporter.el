@@ -41,16 +41,14 @@
 (require 'amplify-core (amplify/path "amplify-core.el"))
 
 (defvar amplify/reporter nil)
-(make-local-variable 'amplify/reporter) ;; Each buffer maintains its own reporter
 
 (defun amplify/reporter-connect ()
   "Connect the Reporter, if it was not connected."
   (unless amplify/reporter
-    (make-local-variable 'amplify/reporter) ;; Each buffer maintains its own reporter
-    (setq amplify/reporter (-> (cereal/ureporter-new)
-                               (cereal/ureporter-connect)))
-    ;; (cereal/creporter-set-linger amplify/reporter 0) ;; TODO: Do I even need this?
-    (cereal/creporter-set-send-timeout amplify/reporter 1)
+    (setq amplify/reporter (-> (amplify-elisp/ureporter-new)
+                               (amplify-elisp/ureporter-connect)))
+    ;; (amplify-elisp/creporter-set-linger amplify/reporter 0) ;; TODO: Do I even need this?
+    (amplify-elisp/creporter-set-send-timeout amplify/reporter 1)
     (amplify/log "connected reporter"))
   t)
 
@@ -62,15 +60,11 @@
     (amplify/log "disconnected reporter"))
   t)
 
-(cl-defun amplify/reporter-send (&key mode-name
-                                      kind
-                                      request-number
-                                      duration-nanos
-                                      command)
+(cl-defun amplify/reporter-send (&key mode-name action request-number duration-nanos command)
   "Report performance information.  The following keys are significant:
 MODE-NAME: The name of the mode deriving from `amplify-mode'.
-KIND: What the Msg represents, e.g. 'parse', 'analyze', 'analysis result',
-    'syntax coloring' etc.
+ACTION: What the original Msg represents, e.g. 'parse result', 'analysis result',
+    'syntax coloring', 'symbol resolution' etc.
 REQUEST-NUMBER: The request number of the subject Msg of this report.
 DURATION-NANOS: The period between sending out a Msg requesting the information,
         and completing the action that depends on the answer.
@@ -79,21 +73,20 @@ COMMAND: May be, and defaults to, nil. Otherwise a string representing a command
         * flush: Make the collector persist its cached data"
   (unless amplify/reporter
     (error "Reporter is not connected"))
-  (unless (stringp kind)
-    (error "Expected a string value for :kind"))
+  (unless (stringp action)
+    (error "Expected a string value for :action"))
   (unless (numberp request-number)
     (error "Expected a number for :request-number"))
   (unless (numberp duration-nanos)
     (error "Expected a number for :duration-nanos"))
-  (let ((mode-name (cond ((symbolp mode-name) (symbol-name mode-name))
-                         ((stringp mode-name) mode-name)
-                         (t (error "Expected a string or symbol for mode-name")))))
-    (->> (cereal/report :action kind
-                        :process (concat "Emacs/" mode-name)
-                        :request-number request-number
-                        :duration-nanos duration-nanos
-                        :command command)
-         (cereal/creporter-send amplify/reporter))))
+  (->> (amplify-elisp/report
+        :action action
+        :process (format "Emacs/mode:%s/buffer:%s"
+                         major-mode (buffer-name (current-buffer)))
+        :request-number (or request-number amplify/request-number)
+        :duration-nanos (or duration-nanos 0)
+        :command command)
+       (amplify-elisp/creporter-send amplify/reporter)))
 
 (provide 'amplify-reporter)
 ;;; amplify-reporter.el ends here
