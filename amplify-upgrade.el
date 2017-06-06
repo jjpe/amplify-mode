@@ -64,16 +64,16 @@ This is based on the semantic version stored in `amplify/current-version'.")
   (condition-case nil
       (url-copy-file url file-name)
     (error ; file-already-exists
-     (amplify/log "Using cached resource @ %s" file-name))))
+     (amplify/log "using cached resource @ %s" file-name))))
 
 (defun amplify/extract-resource (archive-file-name target-dir)
   "Extract an archive, located at ARCHIVE-FILE-NAME, to a TARGET-DIR.
 If the TARGET-DIR already exists, skip the extraction."
   (if (file-exists-p target-dir)
-      (amplify/log "Using cached dir @ %s" target-dir)
+      (amplify/log "using cached dir @ %s" target-dir)
     (progn
       (shell-command (concat "unzip " archive-file-name " -d " target-dir))
-      (amplify/log "Extracted dir @ %s" target-dir))))
+      (amplify/log "extracted dir @ %s" target-dir))))
 
 (defun amplify/query-latest-release ()
   "Query GitHub for the latest Amplify release information."
