@@ -42,7 +42,7 @@
 (require 'amplify-core (amplify/path "amplify-core.el"))
 (require 'cl-macs)
 
-(defvar amplify/current-version "0.9.10"
+(defvar amplify/current-version "0.11.0"
   "The current semantic version of Amplify.")
 
 (defvar amplify/releases-dir
@@ -77,7 +77,7 @@ If the TARGET-DIR already exists, skip the extraction."
 
 (defun amplify/query-latest-release ()
   "Query GitHub for the latest Amplify release information."
-  (amplify/fetch-latest-release "libcereal"))
+  (amplify/fetch-latest-release "amplify"))
 
 (cl-defun amplify/fetch-latest-release (project &key author)
   "Query GitHub for the latest release information for a PROJECT by AUTHOR.
@@ -102,7 +102,7 @@ Specifically the following is downloaded:
   * A default settings file.
 Files that already exist won't be downloaded again."
   (let* ((new-dir-path (concat amplify/releases-dir semver "/"))
-         (url-base "https://github.com/jjpe/libcereal/releases/download/")
+         (url-base "https://github.com/jjpe/amplify/releases/download/")
          (amplify-url (concat url-base semver "/amplify-" semver "-osx"))
          (amplify-bin (concat new-dir-path "amplify-" semver "-osx"))
          (amplify-dbg-url (concat url-base semver "/amplify-" semver "-osx-dbg"))
@@ -133,7 +133,7 @@ Files that already exist won't be downloaded again."
 
 
 (defun amplify/switch-version (semver)
-  "Download and switch to Amplify SEMVER version e.g. \"0.9.10.\".
+  "Download and switch to Amplify SEMVER version e.g. \"0.11.0\".
 This explicitly does not stop or start any processes, that must be done separately."
   ;; TODO: persistence of new SEMVER, especially when Amplify was upgraded.
   (amplify/download-release semver)
