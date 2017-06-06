@@ -143,12 +143,12 @@ That will make it easier to build IDE-like functionality for multiple languages.
   (amplify/sink-connect)
   (amplify/source-connect)
 
-  ;; TODO: this is just a prototype
+  ;; ;; TODO: this is just a prototype
   ;; (add-hook 'amplify/sink-functions
   ;;           (lambda (buffer msg)
   ;;             (amplify/log "Calling a sink function on msg:\n%s" msg)))
 
-  (amplify/set-sink-timer amplify/sink-poll-interval)
+  (amplify/set-sink-timer      amplify/sink-poll-interval)
   (amplify/set-sink-idle-timer amplify/sink-idle-timeout)
 
   (add-hook 'after-change-major-mode-hook 'amplify/try-shutdown)
@@ -157,6 +157,10 @@ That will make it easier to build IDE-like functionality for multiple languages.
 (defun amplify/try-shutdown ()
   "Try to shut `amplify-mode' down."
   (when (zerop (length (amplify/find-all-descendant-buffers)))
+    (amplify/reporter-disconnect)
+    (amplify/sink-disconnect)
+    (amplify/source-disconnect)
+
     (amplify/cancel-sink-timer)
     (amplify/cancel-sink-idle-timer)
     (amplify/stop-broadcaster!)
