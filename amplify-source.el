@@ -159,7 +159,7 @@ AST: either nil (default) or a plistified AST, see `amplify-elisp/ast-plistify'.
          (msg (amplify-elisp/msg :process process
                                  :request-number request-number
                                  :kind kind
-                                 :origin (buffer-file-name)
+                                 :origin (buffer-file-name buffer)
                                  :contents contents
                                  :regions regions
                                  :language language
