@@ -156,12 +156,16 @@ The timer runs when the user has been inactive for that amount of time."
     (setq amplify/sink-idle-timer nil)))
 
 
-(defconst amplify/null-msg (->> (amplify-elisp/msg-new)
-                                (amplify-elisp/msg-plistify)))
+(defconst amplify/null-msg-plist (->> (amplify-elisp/msg-new)
+                                      (amplify-elisp/msg-plistify)))
 
-(defun amplify/is-null-msg? (msg-plist)
-  "Return t if MSG-PLIST equals the null msg."
-  (equal amplify/null-msg msg-plist))
+(defun amplify/is-null-msg? (msg)
+  "Return t if MSG equals the null msg as either a user-ptr or a property list."
+  (cond ((and msg (listp msg))
+         (equal msg amplify/null-msg-plist))
+        ((user-ptrp msg)
+         (equal (amplify-elisp/msg-plistify msg) amplify/null-msg-plist))
+        (t  (error "[amplify/is-null-msg?] Can't handle msg: %s" msg))))
 
 
 
