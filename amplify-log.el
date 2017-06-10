@@ -42,11 +42,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                              Logging                                       ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defvar amplify/log-messages t
+  "The function `amplify/log' will perform logging when this is set to t.
+When it is set to nil, nothing will happen.")
+
 (defun amplify/log (fmt-string &rest args)
   "Log a message.
 FMT-STRING: A string that can contain string format arguments.
 ARGS: Any arguments to FMT-STRING."
-  (message "[amplify] %s" (apply #'format fmt-string args)))
+  (when amplify/log-messages
+    (message "[amplify] %s" (apply #'format fmt-string args))))
 
 
 (provide 'amplify-log)
