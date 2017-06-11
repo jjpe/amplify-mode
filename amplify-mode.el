@@ -86,7 +86,7 @@ explicitly included."
 
 
 (defcustom amplify/sink-functions nil
-  "A list of hooks run when Amplify has an incoming MSG.
+  "A list of hooks run when Amplify receives a MSG.
 Deriving modes can use this to asynchronously get access.
 To do so, functions are added to this list that take an arg list (BUFFER MSG)."
   :options '(imenu-add-menubar-index)

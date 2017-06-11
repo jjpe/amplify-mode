@@ -50,8 +50,8 @@ If FORCE is truthy, connect regardless of whether there already was a connection
     (setq amplify/source (-> (amplify-elisp/uclient-new)
                              (amplify-elisp/uclient-connect)))
     ;; (amplify-elisp/cclient-set-linger amplify/source 0) ;; TODO: Do I even need this?
-    (amplify-elisp/cclient-set-send-timeout    amplify/source  1)
-    (amplify-elisp/cclient-set-receive-timeout amplify/source 10)
+    (amplify-elisp/cclient-set-send-timeout    amplify/source 1)
+    (amplify-elisp/cclient-set-receive-timeout amplify/source 1)
     (amplify-elisp/cclient-set-send-hwm    amplify/source 1000)
     (amplify-elisp/cclient-set-receive-hwm amplify/source 1000)
     (amplify/log "connected source"))
@@ -151,7 +151,7 @@ AST: either nil (default) or a plistified AST, see `amplify-elisp/ast-plistify'.
     (error "Source is not connected"))
   (unless (or (bufferp buffer) (stringp buffer))
     (error "Expected a buffer or a string name for 'buffer'"))
-  (let* ((buffer (if (bufferp buffer)  buffer  (get-buffer buffer)))
+  (let* ((buffer (get-buffer buffer))
          (mode-name (with-current-buffer buffer
                       (symbol-name major-mode)))
          (process (concat "emacs " mode-name))

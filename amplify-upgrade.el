@@ -42,7 +42,7 @@
 (require 'amplify-core (amplify/path "amplify-core.el"))
 (require 'cl-macs)
 
-(defvar amplify/current-version "0.11.1"
+(defvar amplify/current-version "0.11.2"
   "The current semantic version of Amplify.")
 
 (defvar amplify/releases-dir
@@ -133,7 +133,7 @@ Files that already exist won't be downloaded again."
 
 
 (defun amplify/switch-version (semver)
-  "Download and switch to Amplify SEMVER version e.g. \"0.11.0\".
+  "Download and switch to Amplify SEMVER version.
 This explicitly does not stop or start any processes, that must be done separately."
   ;; TODO: persistence of new SEMVER, especially when Amplify was upgraded.
   (amplify/download-release semver)
