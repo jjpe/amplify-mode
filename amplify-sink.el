@@ -178,23 +178,14 @@ If there is, call `amplify/sink-functions' in each amplify buffer."
            (msg-process (plist-get msg-plist :process))
            (msg-reqno   (plist-get msg-plist :request-number))
            (msg-kind    (plist-get msg-plist :kind)))
-      (when (and msg-plist (not (amplify/is-null-msg? msg-plist)))
-        (amplify/log "got raw msg: %s"  msg-plist)
-        (unless (eq amplify/request-number msg-reqno)
-          ;; Old messages are ignored
-          (amplify/log "dropped old msg[%s, %d]: %s"  msg-process  msg-reqno  msg-kind)
-          (return-from 'amplify/sink-timer-fn nil))
-        (amplify/log "received msg[%s, %d]: %s"  msg-process  msg-reqno  msg-kind)
-        (loop for amplify-buffer in (amplify/find-all-descendant-buffers)
-              do (with-current-buffer amplify-buffer
-                   ;; Invoke all non-standard hooks in `amplify/sink-functions',
-                   ;; which must be a local binding for each buffer with (some
-                   ;; descendant of) `amplify-mode' as its `major-mode'.  This
-                   ;; way, each buffer in any descendant mode can decide on its
-                   ;; own how to act on the received Msg.
-                   (run-hook-with-args 'amplify/sink-functions
-                                       amplify-buffer
-                                       msg-plist)))))))
+      (when (or  (not (listp msg-plist))  (amplify/is-null-msg? msg-plist))
+        (return-from 'amplify/sink-timer-fn nil))
+      (unless (eq amplify/request-number msg-reqno)
+        ;; Ignore old messages
+        (amplify/log "ignoring old msg[%s, %d]: %s"  msg-process  msg-reqno  msg-kind)
+        (return-from 'amplify/sink-timer-fn nil))
+      (amplify/log "received msg[%s, %d]: %s"  msg-process  msg-reqno  msg-kind)
+      (run-hook-with-args  'amplify/sink-functions  msg-plist))))
 
 
 
