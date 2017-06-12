@@ -149,7 +149,7 @@ That will make it easier to build IDE-like functionality for multiple languages.
   ;;             (amplify/log "Calling a sink function on msg:\n%s" msg)))
 
   (amplify/set-sink-timer      amplify/sink-poll-interval)
-  (amplify/set-sink-idle-timer amplify/sink-idle-timeout)
+  (amplify/set-sink-idle-timer amplify/sink-idle-timeout);; TODO: This might not be needed anymore
 
   (add-hook 'after-change-major-mode-hook 'amplify/try-shutdown)
   )

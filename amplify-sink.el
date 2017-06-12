@@ -81,8 +81,8 @@
   (unless amplify/sink  (error "Sink is not connected"))
   (let ((msg (amplify-elisp/msg-new)))
     (pcase (amplify-elisp/cclient-receive amplify/sink msg)
-      (:interrupted  nil)
-      (:no-msg       nil)
+      (:interrupted  nil) ;; TODO: may not be needed anymore
+      (:no-msg       nil) ;; TODO: may not be needed anymore
       (_  (->> (amplify-elisp/msg-plistify msg)
                (amplify/drop-msg-if ;; Drop msgs sent by Emacs
                 (lambda (msg) (string-prefix-p "emacs " (plist-get msg :process))))
@@ -126,7 +126,6 @@ It runs when the user has been inactive for `amplify/sink-idle-timeout' seconds.
   "Set `amplify/sink-timer', and execute `amplify/sink-timer-fn' every PERIOD seconds."
   (unless (timerp amplify/sink-timer)
     (let ((period (or period amplify/sink-poll-interval)))
-      ;; (amplify/cancel-sink-timer)
       (setq amplify/sink-timer
             (run-at-time  period  period  #'amplify/sink-timer-fn))
       (amplify/log "set sink timer"))))
@@ -161,10 +160,11 @@ The timer runs when the user has been inactive for that amount of time."
 
 (defun amplify/is-null-msg? (msg)
   "Return t if MSG equals the null msg as either a user-ptr or a property list."
-  (cond ((and msg (listp msg))
+  (cond ((null msg)  t)
+        ((and msg (listp msg))
          (equal msg amplify/null-msg-plist))
         ((user-ptrp msg)
-         (equal (amplify-elisp/msg-plistify msg) amplify/null-msg-plist))
+         (equal  (amplify-elisp/msg-plistify msg)  amplify/null-msg-plist))
         (t  (error "[amplify/is-null-msg?] Can't handle msg: %s" msg))))
 
 
