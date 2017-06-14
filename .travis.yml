@@ -1,0 +1,15 @@
+before_install:
+- echo "TravisCI build dir @ $TRAVIS_BUILD_DIR"
+- echo "Git tag @ $TRAVIS_TAG"
+script:
+- zip -r -p amplify-mode-${TRAVIS_TAG}.zip  ${TRAVIS_BUILD_DIR}./LICENSE ${TRAVIS_BUILD_DIR}./*.el
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: ARu2u6yHfIbgu1vFdTekWFDWNTTNciBjCqq0H2rlIMeDJ69sFm5Wb1NH058mbdG7i7Dh6EPcp1qi7R1D0uaQrnqNwOYKzRmx2KsqFtYmLWgSqBwnaUgx+38mfj9qMEuAwbhIVnDA3keXx3f6oplXuVNJqTmvQb1nDmzJOeB7tka54SXCHZTeVXFVdbLmBLbc9+bctioc6rVT0RWsNkPW1rA1LmlyVZynRctgupSH8a5JhSE7/9d53rynSqixT5GUvGsqVaq62XN0tDvS9odLNuKsKPqxecWCJvynV5v5lpqUSdNoHL+zoqibZaJD+mXVOpoPlUVM6uOZ9wFaVplvaFCJyW1Y3Hbilvylu6LL7SIOPMPpeB6BLMM4Eit5UwFzQQ5XnfFPIjFp5FvD21rH4MRvGucf6OZ9HIg1jB6i5/3JgMz9tvJdBWqHSTilkiToQgPr2TJdCLfZhk744Oan3GmDimU+NyMKDDChAq/T0lwIJjRAJG+lbOjSB9Sh+GiC2lEZ1QNQ/GbuM4sPZY8cLn5MViqxANXIMjJARGkRJNIPiXi1s4CMj9MXlUWiqZnQe7Bec4QyPHjbDmMquVZx6SFHnRNTkYXNnW7BENcS49Kzw2Gb4QaOl+3bfPAnElk1t4+BacVbS2SIKBLrEdo6QxrnUPVzXO0rdvhPtCvDnck=
+  file:
+    - amplify-mode-${TRAVIS_TAG}.zip
+  on:
+    repo: jjpe/amplify-mode
+    tags: true
