@@ -81,8 +81,12 @@
   (unless amplify/sink  (error "Sink is not connected"))
   (let ((msg (amplify-elisp/msg-new)))
     (pcase (amplify-elisp/cclient-receive amplify/sink msg)
-      (:interrupted  nil) ;; TODO: may not be needed anymore
-      (:no-msg       nil) ;; TODO: may not be needed anymore
+      (:reconnect  (progn (amplify/source-disconnect)
+                          (amplify/sink-disconnect)
+                          (amplify/reporter-disconnect)
+                          (amplify/source-connect)
+                          (amplify/sink-connect)
+                          (amplify/reporter-connect)))
       (_  (->> (amplify-elisp/msg-plistify msg)
                (amplify/drop-msg-if ;; Drop msgs sent by Emacs
                 (lambda (msg) (string-prefix-p "emacs " (plist-get msg :process))))
@@ -186,129 +190,6 @@ If there is, call `amplify/sink-functions' in each amplify buffer."
         (return-from 'amplify/sink-timer-fn nil))
       (amplify/log "received msg[%s, %d]: %s"  msg-process  msg-reqno  msg-kind)
       (run-hook-with-args  'amplify/sink-functions  msg-plist))))
-
-
-
-
-;; TODO: Inspect this thoroughly. Its very likely that some of this can just go.
-;;
-;; (cl-defun spoofax/sink (product-alist recv-duration-nanos)
-;;   (with-current-buffer (get-buffer (spoofax/requested-source))
-;;     (cl-destructuring-bind (source-str reqno product language contents)
-;;         (spoofax/split-product product-alist)
-;;       (unless (eq (spoofax/requested-reqno) reqno)
-;;         (return-from spoofax/sink)) ;; Prune products from old revisions
-;;       (spoofax/report :action "received product"
-;;                       :process "emacs-sink"
-;;                       :revision reqno
-;;                       :duration-nanos recv-duration-nanos)
-;;       (message "[spoofax] Received product (@ %s s, took %5d ms)"
-;;                (spoofax/time-since-request)
-;;                (/ recv-duration-nanos spoofax/ns-per-ms))
-;;       (cond ((string= product "parse messages")
-;;              (spoofax/update-feedback source-str contents reqno))
-;;             ((string= product "analysis messages")
-;;              (spoofax/update-feedback source-str contents reqno))
-;;             ((string= product "syntax coloring")
-;;              (spoofax/update-coloring contents reqno))
-;;             ((string= product "open projects")
-;;              (spoofax/log-info "Open projects: %s" contents))
-;;             ((string= product "reference resolution")
-;;              (spoofax/jump-to-reference contents))
-;;             ((member product '("parse result" "analysis result"))
-;;              ;; This admittedly odd construction is to ensure that even
-;;              ;; if the user hasn't requested this particular result, if
-;;              ;; they could have then this COND branch should be taken
-;;              ;; nonetheless.
-;;              (when (string= (spoofax/requested-product) product)
-;;                ;; (and (string= (spoofax/requested-product) product)
-;;                ;;        (eq (spoofax/requested-reqno) reqno))
-;;                (spoofax/update-result-buffer source-str product contents)
-;;                (spoofax/update-product-buffer product-alist)))
-;;             (t (message "[spoofax] Unknown product name. product-alist: %s"
-;;                         (pp-to-string product-alist)))))))
-
-
-
-
-
-;; (defun spoofax/update-feedback (source-string contents request-number)
-;;   ""
-;;   (let* ((json-key-type 'string)
-;;          (bufname (file-name-nondirectory source-string))
-;;          (results (spoofax/measure
-;;                       (let* ((feedback-items
-;;                               (->> contents
-;;                                    json-read-from-string
-;;                                    (mapcar #'json-read-from-string)
-;;                                    (mapcar (lambda (msg)
-;;                                              (split-string msg "||"))))))
-;;                         (when spoofax/clear-fontification?
-;;                           (setq spoofax/clear-fontification? nil)
-;;                           (spoofax/clear-tooltips (point-min) (point-max)))
-;;                         (with-current-buffer bufname
-;;                           (loop for item in feedback-items
-;;                                 do (spoofax/highlight-feedback-item item))))))
-;;          (duration-nanos (first results)))
-;;     (spoofax/report :action "updated feedback"
-;;                     :process "emacs-sink"
-;;                     :revision request-number
-;;                     :duration-nanos duration-nanos)
-;;     (message "[spoofax] Updated feedback (@ %s s, took %5d ms)"
-;;              (spoofax/time-since-request)
-;;              (/ duration-nanos spoofax/ns-per-ms))))
-
-;; (defun spoofax/update-coloring (contents request-number)
-;;   ""
-;;   (let* ((results (->> (loop for item across (json-read-from-string contents)
-;;                              do (spoofax/highlight-coloring-item item))
-;;                        (spoofax/measure)))
-;;          (duration-nanos (first results)))
-;;     (spoofax/report :action "updated coloring"
-;;                     :process "emacs-sink"
-;;                     :revision request-number
-;;                     :duration-nanos duration-nanos)
-;;     (message "[spoofax] Updated coloring (@ %s s, took %5d ms)"
-;;              (spoofax/time-since-request)
-;;              (/ duration-nanos spoofax/ns-per-ms))))
-
-;; (defun spoofax/jump-to-reference (contents)
-;;   "Jump to a reference, which must be parseable from CONTENTS."
-;;   (when (string= contents "no resolution found")
-;;     (beep)
-;;     (return-from spoofax/jump-to-reference))
-;;   (let* ((results (spoofax/measure
-;;                       (let* ((resolution (json-read-from-string contents))
-;;                              (filepath (spoofax/alist-get resolution 'file))
-;;                              (start (spoofax/alist-get-int resolution 'start))
-;;                              (end   (spoofax/alist-get-int resolution 'end)))
-;;                         (with-current-buffer (find-file filepath)
-;;                           (goto-char (1+ start))))))
-;;          (duration-nanos (first results)))
-;;     (spoofax/report :action "opened resolution"
-;;                     :process "emacs-sink"
-;;                     :revision reqno
-;;                     :duration-nanos duration-nanos)
-;;     (message "[spoofax] Opened resolution (@ %s s, took %5d ms)"
-;;              (spoofax/time-since-request)
-;;              (/ duration-nanos spoofax/ns-per-ms))))
-
-;; (defun spoofax/update-result-buffer (source-string product contents)
-;;   ""
-;;   (let ((since-timestamp (time-since (spoofax/requested-timestamp))))
-;;     (spoofax/log-info "Request (took %s s): %s"
-;;                     (format-time-string "%S.%3N" since-timestamp)
-;;                     spoofax/most-recent-request)
-;;     (spoofax/with-output-buffer "result"
-;;         (insert "From \"" source-string "\":\n"
-;;                 "Result type: \"" product "\"\n\n"
-;;                 contents))))
-
-;; (defun spoofax/update-product-buffer (product-alist)
-;;   ""
-;;   (when spoofax/show-product-buffer
-;;     (spoofax/with-output-buffer "product"
-;;         (insert "Product:\n\n" (pp-to-string product-alist)))))
 
 
 (provide 'amplify-sink)
