@@ -6,7 +6,7 @@ before_install:
 - echo "Git tag @ $TRAVIS_TAG"
 script:
 - ls -alh
-- zip -r -p amplify-mode-${TRAVIS_TAG}.zip  ${TRAVIS_BUILD_DIR}/LICENSE ${TRAVIS_BUILD_DIR}/*.el
+- zip -r -j amplify-mode-${TRAVIS_TAG}.zip  ${TRAVIS_BUILD_DIR}/LICENSE  ${TRAVIS_BUILD_DIR}/*.el
 deploy:
   provider: releases
   skip_cleanup: true
