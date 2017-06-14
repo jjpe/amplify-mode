@@ -1,8 +1,12 @@
+matrix:
+    include:
+        - os: linux
 before_install:
 - echo "TravisCI build dir @ $TRAVIS_BUILD_DIR"
 - echo "Git tag @ $TRAVIS_TAG"
 script:
-- zip -r -p amplify-mode-${TRAVIS_TAG}.zip  ${TRAVIS_BUILD_DIR}./LICENSE ${TRAVIS_BUILD_DIR}./*.el
+- ls -alh
+- zip -r -p amplify-mode-${TRAVIS_TAG}.zip  ${TRAVIS_BUILD_DIR}/LICENSE ${TRAVIS_BUILD_DIR}/*.el
 deploy:
   provider: releases
   skip_cleanup: true
