@@ -47,9 +47,6 @@
 
 (require 'dash) ;; Threading operators (->, ->>)
 (require 'amplify-log)
-(require 'amplify-elisp
-         "../amplify-elisp/amplify-elisp.el" ;; TODO: remove the hard-coded path
-         )
 
 
 (defun spoofax/read-string-from-file (file-path)

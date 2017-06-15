@@ -74,6 +74,79 @@ explicitly included."
 
 
 
+
+
+;; Code to download and load `amplify-elisp'
+(defvar amplify/amplify-elisp-root-dir (amplify/subproc-path "amplify-elisp"))
+
+(defvar amplify/amplify-elisp-version "0.11.5")
+
+(defvar amplify/amplify-elisp-current-dir
+  (concat amplify/amplify-elisp-root-dir "/" amplify/amplify-elisp-version))
+
+(defun amplify/download-resource (url file-name)
+  "Download a resource from URL to FILE-NAME."
+  (condition-case nil
+      (url-copy-file url file-name)
+    (error ; file-already-exists
+     (message "[amplify] using cached resource @ %s" file-name))))
+
+(defun amplify/extract-amplify-elisp (archive-file-name target-dir)
+  "Extract an archive, located at ARCHIVE-FILE-NAME, to a TARGET-DIR.
+If the TARGET-DIR already exists, skip the extraction."
+  (unless (file-exists-p target-dir)
+    (make-directory target-dir))
+  (shell-command (concat "unzip " archive-file-name " -d " target-dir))
+  (message "[amplify] extracted %s  to  %s" archive-file-name target-dir))
+
+(defun amplify/amplify-elisp-query-latest-release ()
+  "Query GitHub for the latest `amplify-elisp' release information."
+  (amplify/fetch-latest-release "amplify-elisp"))
+
+(cl-defun amplify/fetch-latest-release (project &key author)
+  "Query GitHub for the latest release information for a PROJECT by AUTHOR.
+AUTHOR is a keyword argument that can be omitted, and defaults to \"jjpe\".
+This function uses the GitHub REST API v3. "
+  (let* ((author (or author "jjpe"))
+         (url (format "https://api.github.com/repos/%s/%s/releases/latest"
+                      author project)))
+    (with-current-buffer (url-retrieve-synchronously url)
+      (->> (json-read)
+           (assoc 'tag_name)
+           cdr))))
+
+(defun amplify/amplify-elisp-download-release (semver)
+  "Download an `amplify-elisp' release with a specific SEMVER, e.g. \"0.11.2\".
+Specifically the following is downloaded:
+ * amplify-elisp-SEMVER.zip, which contains `amplify-elisp'.
+If it already exists, it won't be downloaded again."
+  (let* ((new-dir-path (amplify/subproc-path "amplify-elisp/" semver "/"))
+         (url-base "https://github.com/jjpe/amplify-elisp/releases/download/")
+         (amplify-elisp-url (concat url-base semver "/amplify-elisp-" semver ".zip"))
+         (amplify-elisp-zip (concat new-dir-path "amplify-elisp-" semver ".zip")))
+    (unless (file-exists-p (amplify/subproc-path))
+      (make-directory (amplify/subproc-path)))
+    (unless (file-exists-p amplify/amplify-elisp-root-dir)
+      (make-directory amplify/amplify-elisp-root-dir))
+    (unless (file-exists-p (amplify/subproc-path "amplify-elisp/"))
+      (make-directory (amplify/subproc-path "amplify-elisp/")))
+    (unless (file-exists-p new-dir-path)
+      (make-directory new-dir-path))
+    (amplify/download-resource amplify-elisp-url amplify-elisp-zip)
+    (amplify/extract-amplify-elisp amplify-elisp-zip new-dir-path)))
+
+
+
+;; This needs to complete successfully BEFORE requiring `amplify-elisp':
+(amplify/amplify-elisp-download-release  amplify/amplify-elisp-version)
+
+
+
+
+(require 'amplify-elisp (amplify/subproc-path "amplify-elisp/"
+                                              amplify/amplify-elisp-version
+                                              "/amplify-elisp.el"))
+
 (require 'amplify-core        (amplify/path "amplify-core.el"))
 (require 'amplify-upgrade     (amplify/path "amplify-upgrade.el"))
 (require 'amplify-reporter    (amplify/path "amplify-reporter.el"))
