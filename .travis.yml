@@ -1,6 +1,9 @@
 matrix:
     include:
         - os: linux
+branches:
+  except:
+    - master
 before_install:
 - echo "TravisCI build dir @ $TRAVIS_BUILD_DIR"
 - echo "Git tag @ $TRAVIS_TAG"
