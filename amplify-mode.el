@@ -79,7 +79,7 @@ explicitly included."
 ;; Code to download and load `amplify-elisp'
 (defvar amplify/amplify-elisp-root-dir (amplify/subproc-path "amplify-elisp"))
 
-(defvar amplify/amplify-elisp-version "0.11.5")
+(defvar amplify/amplify-elisp-version "0.12.3")
 
 (defvar amplify/amplify-elisp-current-dir
   (concat amplify/amplify-elisp-root-dir "/" amplify/amplify-elisp-version))
@@ -116,7 +116,7 @@ This function uses the GitHub REST API v3. "
            cdr))))
 
 (defun amplify/amplify-elisp-download-release (semver)
-  "Download an `amplify-elisp' release with a specific SEMVER, e.g. \"0.11.2\".
+  "Download an `amplify-elisp' release with a specific SEMVER.
 Specifically the following is downloaded:
  * amplify-elisp-SEMVER.zip, which contains `amplify-elisp'.
 If it already exists, it won't be downloaded again."
