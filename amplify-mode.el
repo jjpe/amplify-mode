@@ -79,7 +79,7 @@ explicitly included."
 ;; Code to download and load `amplify-elisp'
 (defvar amplify/amplify-elisp-root-dir (amplify/subproc-path "amplify-elisp"))
 
-(defvar amplify/amplify-elisp-version "0.13.0")
+(defvar amplify/amplify-elisp-version "0.13.1")
 
 (defvar amplify/amplify-elisp-current-dir
   (concat amplify/amplify-elisp-root-dir "/" amplify/amplify-elisp-version))
@@ -149,7 +149,7 @@ If it already exists, it won't be downloaded again."
 
 (require 'amplify-core        (amplify/path "amplify-core.el"))
 (require 'amplify-upgrade     (amplify/path "amplify-upgrade.el"))
-(require 'amplify-reporter    (amplify/path "amplify-reporter.el"))
+;; (require 'amplify-reporter    (amplify/path "amplify-reporter.el"))
 (require 'amplify-broadcaster (amplify/path "amplify-broadcaster.el"))
 (require 'amplify-source      (amplify/path "amplify-source.el"))
 (require 'amplify-sink        (amplify/path "amplify-sink.el"))
@@ -212,7 +212,7 @@ That will make it easier to build IDE-like functionality for multiple languages.
   (unless (process-live-p (get-process "*Collector*"))
     (amplify/start-collector!))
 
-  (amplify/reporter-connect)
+  ;; (amplify/reporter-connect)
   (amplify/sink-connect)
   (amplify/source-connect)
 
@@ -225,7 +225,7 @@ That will make it easier to build IDE-like functionality for multiple languages.
 (defun amplify/try-shutdown ()
   "Try to shut `amplify-mode' down."
   (when (zerop (length (amplify/find-all-descendant-buffers)))
-    (amplify/reporter-disconnect)
+    ;; (amplify/reporter-disconnect)
     (amplify/sink-disconnect)
     (amplify/source-disconnect)
 

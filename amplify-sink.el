@@ -83,10 +83,11 @@
     (pcase (amplify-elisp/cclient-receive amplify/sink msg)
       (:reconnect  (progn (amplify/source-disconnect)
                           (amplify/sink-disconnect)
-                          (amplify/reporter-disconnect)
+                          ;; (amplify/reporter-disconnect)
                           (amplify/source-connect)
                           (amplify/sink-connect)
-                          (amplify/reporter-connect)))
+                          ;; (amplify/reporter-connect)
+                          ))
       (_  (->> (amplify-elisp/msg-plistify msg)
                (amplify/drop-msg-if ;; Drop msgs sent by Emacs
                 (lambda (msg) (string-prefix-p "emacs " (plist-get msg :process))))
