@@ -42,7 +42,7 @@
 (require 'amplify-core (amplify/path "amplify-core.el"))
 (require 'cl-macs)
 
-(defvar amplify/current-version "0.12.1"
+(defvar amplify/current-version "0.13.0"
   "The current semantic version of Amplify.")
 
 (defvar amplify/releases-dir
@@ -93,11 +93,11 @@ This function uses the GitHub REST API v3. "
 
 
 (defun amplify/download-release (semver)
-  "Download an Amplify release with a specific SEMVER, e.g. \"0.9.6\".
+  "Download an Amplify release with a specific SEMVER.
 Specifically the following is downloaded:
-  * amplify-SEMVER-osx, the main Amplify binary. Hosts the Broadcaster.
+  * amplify-SEMVER-osx, the main Amplify binary.  Hosts the Broadcaster.
   * amplify-SEMVER-osx-dbg, a version of amplify-SEMVER-osx with debug symbols.
-  * monto-SEMVER-osx, the legacy Monto binary. Hosts the Broadcaster.
+  * monto-SEMVER-osx, the legacy Monto binary.  Hosts the Broker.
   * monto-SEMVER-osx-dbg, a version of monto-SEMVER-osx with debug symbols.
   * A default settings file.
 Files that already exist won't be downloaded again."
