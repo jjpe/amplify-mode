@@ -41,15 +41,6 @@
 ;; (require 'rainbow-delimiters)
 ;; (require 'smartparens)
 (require 'amplify-core     (amplify/path "amplify-core.el"))
-(require 'amplify-reporter (amplify/path "amplify-reporter.el"))
-;; (require 'spoofax-coloring)
-
-;; TODO: use these minor modes in Emacs buffers where spoofax-mode is active
-;; (spoofax/add-modes #'rainbow-mode
-;;                    #'show-paren-mode
-;;                    #'smartparens-mode
-;;                    ;; #'whitespace-mode
-;;                    #'rainbow-delimiters-mode)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,7 +53,7 @@
   (unless amplify/sink
     (setq amplify/sink (-> (amplify-elisp/uclient-new)
                            (amplify-elisp/uclient-connect)))
-    ;; (amplify-elisp/cclient-set-linger amplify/sink 0) ;; TODO: Do I even need this?
+    ;; (amplify-elisp/cclient-set-linger amplify/sink 0) ;; TODO: don't linger
     (amplify-elisp/cclient-set-receive-timeout amplify/sink 1)
     (amplify/log "connected sink"))
   t)
@@ -83,11 +74,8 @@
     (pcase (amplify-elisp/cclient-receive amplify/sink msg)
       (:reconnect  (progn (amplify/source-disconnect)
                           (amplify/sink-disconnect)
-                          ;; (amplify/reporter-disconnect)
                           (amplify/source-connect)
-                          (amplify/sink-connect)
-                          ;; (amplify/reporter-connect)
-                          ))
+                          (amplify/sink-connect)))
       (_  (->> (amplify-elisp/msg-plistify msg)
                (amplify/drop-msg-if ;; Drop msgs sent by Emacs
                 (lambda (msg) (string-prefix-p "emacs " (plist-get msg :process))))
@@ -114,7 +102,7 @@ Otherwise return MSG.  That it, the predicates specify \"filter out\" conditions
 (defvar amplify/sink-poll-interval 0.1
   "The time interval between the moments where the Sink looks for new messages.
 Its value is specified in seconds, and may be a decimal number.
-The default is to check each 100 ms.")
+The default is 0.1 i.e. to check each 100 ms.")
 
 (defvar amplify/sink-idle-timeout 30
   "The time in seconds the user is idle, before the sink timer is canceled.

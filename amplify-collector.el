@@ -39,7 +39,6 @@
 ;;; Code:
 
 (require 'amplify-core     (amplify/path "amplify-core.el"))
-(require 'amplify-reporter (amplify/path "amplify-reporter.el"))
 (require 'amplify-source   (amplify/path "amplify-source.el"))
 (require 'amplify-upgrade  (amplify/path "amplify-upgrade.el"))
 

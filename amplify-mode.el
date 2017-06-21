@@ -1,7 +1,6 @@
 ;;; amplify-mode.el --- Amplify mode
 (setq lexical-binding t)
 
-;; TODO: Amplify.toml support
 ;; TODO: support OSes other than OS X
 
 ;; Copyright (c) 2015-2017, Joey Ezechiëls
@@ -40,13 +39,6 @@
 ;;; Commentary:
 
 ;;; Code:
-
-;; TODO: With an eye on performance it is probably a good idea if the
-;;     Reporter, Source and Sink are all global rather than buffer local.
-;;     It's not so much the instantiation of the objects themselves that's
-;;     expensive, rather it's the fact that now all the thread locals need
-;;     to do their own de/serialization, and it takes time to transfer Msg
-;;     objects into/out of Elisp.
 
 
 ;; Ensure Emacs can find the root directory
@@ -149,7 +141,6 @@ If it already exists, it won't be downloaded again."
 
 (require 'amplify-core        (amplify/path "amplify-core.el"))
 (require 'amplify-upgrade     (amplify/path "amplify-upgrade.el"))
-;; (require 'amplify-reporter    (amplify/path "amplify-reporter.el"))
 (require 'amplify-broadcaster (amplify/path "amplify-broadcaster.el"))
 (require 'amplify-source      (amplify/path "amplify-source.el"))
 (require 'amplify-sink        (amplify/path "amplify-sink.el"))
@@ -212,7 +203,6 @@ That will make it easier to build IDE-like functionality for multiple languages.
   (unless (process-live-p (get-process "*Collector*"))
     (amplify/start-collector!))
 
-  ;; (amplify/reporter-connect)
   (amplify/sink-connect)
   (amplify/source-connect)
 
@@ -225,7 +215,6 @@ That will make it easier to build IDE-like functionality for multiple languages.
 (defun amplify/try-shutdown ()
   "Try to shut `amplify-mode' down."
   (when (zerop (length (amplify/find-all-descendant-buffers)))
-    ;; (amplify/reporter-disconnect)
     (amplify/sink-disconnect)
     (amplify/source-disconnect)
 

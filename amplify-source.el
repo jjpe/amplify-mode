@@ -38,8 +38,7 @@
 
 ;;; Code:
 
-(require 'amplify-core     (amplify/path "amplify-core.el"))
-(require 'amplify-reporter (amplify/path "amplify-reporter.el"))
+(require 'amplify-core (amplify/path "amplify-core.el"))
 
 (defvar amplify/source nil)
 
@@ -49,7 +48,7 @@ If FORCE is truthy, connect regardless of whether there already was a connection
   (unless (or amplify/source force)
     (setq amplify/source (-> (amplify-elisp/uclient-new)
                              (amplify-elisp/uclient-connect)))
-    ;; (amplify-elisp/cclient-set-linger amplify/source 0) ;; TODO: Do I even need this?
+    ;; (amplify-elisp/cclient-set-linger amplify/source 0) ;; TODO: don't linger
     (amplify-elisp/cclient-set-send-timeout    amplify/source 1)
     (amplify-elisp/cclient-set-receive-timeout amplify/source 1)
     (amplify-elisp/cclient-set-send-hwm    amplify/source 1000)
@@ -179,4 +178,4 @@ AST: either nil (default) or a plistified AST, see `amplify-elisp/ast-plistify'.
 (provide 'amplify-source)
 ;;; amplify-source.el ends here
 
-;;  LocalWords:  plistified
+;;  LocalWords:  plistified msg's
