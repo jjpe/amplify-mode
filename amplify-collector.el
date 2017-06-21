@@ -40,6 +40,7 @@
 
 (require 'amplify-core     (amplify/path "amplify-core.el"))
 (require 'amplify-reporter (amplify/path "amplify-reporter.el"))
+(require 'amplify-source   (amplify/path "amplify-source.el"))
 (require 'amplify-upgrade  (amplify/path "amplify-upgrade.el"))
 
 (amplify/defprocess collector
@@ -60,23 +61,23 @@
    amplify/current-release-dir
    "amplify-" amplify/current-version "-osx-dbg collect"))
 
-(defun amplify/flush-collector ()
-  "Make the collector persist any dirty reports it has collected."
-  (interactive)
-  (amplify/reporter-send :mode-name major-mode
-                         :action "flush collector"
-                         :request-number amplify/request-number
-                         :duration-nanos 0
-                         :command "flush"))
+
+(cl-defun amplify/collector-send-cmd (cmd)
+  "Send a command to the collector."
+  (amplify/source-send :kind (concat "collector:" cmd)
+                       :buffer (current-buffer)))
 
 (defun amplify/kill-collector ()
-  "Kill the collector process."
+  "Ask the collector process to die."
   (interactive)
-  (amplify/reporter-send :mode-name major-mode
-                         :action "exit"
-                         :request-number amplify/request-number
-                         :command "exit"
-                         :duration-nanos 0))
+  (amplify/collector-send-cmd "exit"))
+
+(defun amplify/flush-collector ()
+  "Ask the *Collector* process to persist the `msg's it has collected so far.
+After this is completed, the `msg's are erased from RAM.
+This means that so the next flush will only persist the `msg's since then."
+  (interactive)
+  (amplify/collector-send-cmd "flush"))
 
 
 (provide 'amplify-collector)
