@@ -189,11 +189,16 @@ That will make it easier to build IDE-like functionality for multiple languages.
 \\{amplify-mode-map}"
   (amplify/download-release amplify/current-version)
 
-  (amplify/install-packages
-   'rainbow-delimiters
-   'rainbow-mode
-   'smartparens
-   'whitespace)
+  (amplify/install-packages 'rainbow-delimiters
+                            'rainbow-mode
+                            'smartparens
+                            'whitespace
+                            'paren)
+  (rainbow-mode 1)
+  (rainbow-delimiters-mode 1)
+  (smartparens-mode 1)
+  (whitespace-mode 1)
+  (show-paren-mode 1)
 
   (unless (process-live-p (get-process "*Broadcaster*"))
     ;; (amplify/start-broadcaster-dbg!)
