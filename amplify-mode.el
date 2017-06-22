@@ -219,33 +219,6 @@ That will make it easier to build IDE-like functionality for multiple languages.
 
 
 
-(defvar amplify-result-mode-map
-  (let ((map (make-sparse-keymap))
-        (menu-map (make-sparse-keymap "Amplify")))
-    (set-keymap-parent map special-mode-map)
-
-
-    map)
-  "Keymap for Amplify Result mode.")
-
-(define-derived-mode amplify-result-mode special-mode "Amplify Result"
-  "
-\\{amplify-result-mode-map}"
-  (rainbow-mode 1)
-  (rainbow-delimiters-mode 1)
-  (smartparens-mode 1)
-  (whitespace-mode 1)
-  (show-paren-mode 1)
-
-
-  ;; TODO: add hooks
-  ;; (amplify/log "added hooks")
-
-
-  ;; TODO: Init amplify state using buffer-local variables
-  )
-
-
 
 (defun amplify/try-shutdown ()
   "Try to shut `amplify-mode' down."
