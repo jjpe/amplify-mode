@@ -56,5 +56,15 @@
     (buffer-string)))
 
 
+(defvar amplify/current-os
+  (pcase system-type
+    ('darwin       "osx")
+    ('gnu/linux    "linux")
+    ;; TODO: Windows support
+    (_ (error "Operating system '%s' is not supported" system-type)))
+  "A tag associated with the current operating system.")
+
+
+
 (provide 'amplify-core)
 ;;; amplify-core.el ends here

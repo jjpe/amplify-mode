@@ -9,7 +9,7 @@
    "cd " spoofax/amplify-current-dir "; "
    ;; Start the binary:
    spoofax/amplify-current-dir
-   "monto-" spoofax/amplify-current-version "-osx broker"))
+   "monto-" spoofax/amplify-current-version "-" amplify/current-os " broker"))
 
 (amplify/defprocess brokers-debug
   (concat
@@ -18,4 +18,7 @@
    "cd " spoofax/amplify-current-dir "; "
    ;; Start the binary:
    spoofax/amplify-current-dir
-   "monto-" spoofax/amplify-current-version "-osx-dbg broker"))
+   "monto-" spoofax/amplify-current-version "-" amplify/current-os "-dbg broker"))
+
+(provide 'amplify-legacy)
+;;; amplify-legacy ends here

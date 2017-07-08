@@ -95,22 +95,25 @@ This function uses the GitHub REST API v3. "
 (defun amplify/download-release (semver)
   "Download an Amplify release with a specific SEMVER.
 Specifically the following is downloaded:
-  * amplify-SEMVER-osx, the main Amplify binary.  Hosts the Broadcaster.
-  * amplify-SEMVER-osx-dbg, a version of amplify-SEMVER-osx with debug symbols.
-  * monto-SEMVER-osx, the legacy Monto binary.  Hosts the Broker.
-  * monto-SEMVER-osx-dbg, a version of monto-SEMVER-osx with debug symbols.
+  * amplify-SEMVER-OS, the main Amplify binary.  Hosts the Broadcaster.
+  * amplify-SEMVER-OS-dbg, a version of amplify-SEMVER-OS with debug symbols.
+  * monto-SEMVER-OS, the legacy Monto binary.  Hosts the Broker.
+  * monto-SEMVER-OS-dbg, a version of monto-SEMVER-OS with debug symbols.
   * A default settings file.
+In the above, OS can be either \"osx\" or linux\".
 Files that already exist won't be downloaded again."
-  (let* ((new-dir-path (concat amplify/releases-dir semver "/"))
-         (url-base "https://github.com/jjpe/amplify/releases/download/")
-         (amplify-url (concat url-base semver "/amplify-" semver "-osx"))
-         (amplify-bin (concat new-dir-path "amplify-" semver "-osx"))
-         (amplify-dbg-url (concat url-base semver "/amplify-" semver "-osx-dbg"))
-         (amplify-dbg-bin (concat new-dir-path "amplify-" semver "-osx-dbg"))
-         (monto-url (concat url-base semver "/monto-" semver "-osx"))
-         (monto-bin (concat new-dir-path "monto-" semver "-osx"))
-         (monto-dbg-url (concat url-base semver "/monto-" semver "-osx-dbg"))
-         (monto-dbg-bin (concat new-dir-path "monto-" semver "-osx-dbg"))
+  (let* ((new-dir-path (concat amplify/releases-dir semver))
+         (url-base "https://github.com/jjpe/amplify/releases/download")
+         (amplify-info "amplify-" semver "-" amplify/current-os)
+         (amplify-url     (concat url-base "/" semver "/" amplify-info))
+         (amplify-dbg-url (concat url-base "/" semver "/" amplify-info "-dbg"))
+         (amplify-bin     (concat new-dir-path "/" amplify-info))
+         (amplify-dbg-bin (concat new-dir-path "/" amplify-info "-dbg"))
+         (monto-info   "monto-"   semver "-" amplify/current-os)
+         (monto-url     (concat url-base "/" semver "/" monto-info))
+         (monto-dbg-url (concat url-base "/" semver "/" monto-info "-dbg"))
+         (monto-bin     (concat new-dir-path "/" monto-info))
+         (monto-dbg-bin (concat new-dir-path "/" monto-info "-dbg"))
          ;; (settings-url "https://raw.githubusercontent.com/jjpe/spoofax-server/master/settings.json")
          ;; (settings-file (concat new-dir-path "settings.json"))
          )

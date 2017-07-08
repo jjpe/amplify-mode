@@ -49,7 +49,7 @@
    "cd " amplify/current-release-dir "; "
    ;; Start the binary:
    amplify/current-release-dir
-   "amplify-" amplify/current-version "-osx collect"))
+   "amplify-" amplify/current-version "-" amplify/current-os " collect"))
 
 (amplify/defprocess collector-debug
   (concat
@@ -58,7 +58,7 @@
    "cd " amplify/current-release-dir "; "
    ;; Start the binary:
    amplify/current-release-dir
-   "amplify-" amplify/current-version "-osx-dbg collect"))
+   "amplify-" amplify/current-version "-" amplify/current-os "-dbg collect"))
 
 
 (cl-defun amplify/collector-send-cmd (cmd)
