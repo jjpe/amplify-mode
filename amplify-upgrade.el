@@ -45,7 +45,7 @@
 (defvar amplify/amplify-version "0.14.0"
   "The current semantic version of Amplify.")
 
-(defvar amplify/amplify-mode-version "0.14.3"
+(defvar amplify/amplify-mode-version "0.14.4"
   "The current semantic version of Amplify.")
 
 (defvar amplify/releases-dir
