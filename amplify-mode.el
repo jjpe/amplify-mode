@@ -1,7 +1,7 @@
 ;;; amplify-mode.el --- Amplify mode
 (setq lexical-binding t)
 
-;; TODO: support OSes other than OS X
+;; TODO: support Windows
 
 ;; Copyright (c) 2015-2017, Joey Ezechiëls
 ;; All rights reserved.
@@ -71,7 +71,7 @@ explicitly included."
 ;; Code to download and load `amplify-elisp'
 (defvar amplify/amplify-elisp-root-dir (amplify/subproc-path "amplify-elisp"))
 
-(defvar amplify/amplify-elisp-version "0.13.3")
+(defvar amplify/amplify-elisp-version "0.14.0")
 
 (defvar amplify/amplify-elisp-current-dir
   (concat amplify/amplify-elisp-root-dir "/" amplify/amplify-elisp-version))

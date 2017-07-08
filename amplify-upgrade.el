@@ -42,7 +42,7 @@
 (require 'amplify-core (amplify/path "amplify-core.el"))
 (require 'cl-macs)
 
-(defvar amplify/current-version "0.13.1"
+(defvar amplify/current-version "0.14.0"
   "The current semantic version of Amplify.")
 
 (defvar amplify/releases-dir
