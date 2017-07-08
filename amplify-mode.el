@@ -187,7 +187,7 @@ All commands in `amplify-mode-shared-map' are inherited by this map.")
 Rather, it is meant as infrastructure for other modes to inherit from.
 That will make it easier to build IDE-like functionality for multiple languages.
 \\{amplify-mode-map}"
-  (amplify/download-release amplify/current-version)
+  (amplify/download-release amplify/amplify-version)
 
   (amplify/install-packages 'rainbow-delimiters
                             'rainbow-mode

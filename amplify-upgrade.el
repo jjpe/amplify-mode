@@ -42,7 +42,10 @@
 (require 'amplify-core (amplify/path "amplify-core.el"))
 (require 'cl-macs)
 
-(defvar amplify/current-version "0.14.0"
+(defvar amplify/amplify-version "0.14.0"
+  "The current semantic version of Amplify.")
+
+(defvar amplify/amplify-mode-version "0.14.2"
   "The current semantic version of Amplify.")
 
 (defvar amplify/releases-dir
@@ -50,9 +53,9 @@
   "The directory in which all amplify releases are stored.")
 
 (defvar amplify/current-release-dir
-  (concat  amplify/releases-dir  amplify/current-version  "/")
+  (concat  amplify/releases-dir  amplify/amplify-version  "/")
   "The directory in which the current amplify release is stored.
-This is based on the semantic version stored in `amplify/current-version'.")
+This is based on the semantic version stored in `amplify/amplify-version'.")
 
 
 
@@ -135,7 +138,7 @@ Files that already exist won't be downloaded again."
 This explicitly does not stop or start any processes, that must be done separately."
   ;; TODO: persistence of new SEMVER, especially when Amplify was upgraded.
   (amplify/download-release semver)
-  (setq amplify/current-version      semver)
+  (setq amplify/amplify-version      semver)
   (setq amplify/current-release-dir  (concat  amplify/releases-dir  semver  "/")))
 
 
