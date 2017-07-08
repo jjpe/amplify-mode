@@ -62,7 +62,8 @@
     ('gnu/linux    "linux")
     ;; TODO: Windows support
     (_ (error "Operating system '%s' is not supported" system-type)))
-  "A tag associated with the current operating system.")
+  "A tag associated with the current operating system.
+This tag is e.g. used to find out which binaries to download.")
 
 
 
