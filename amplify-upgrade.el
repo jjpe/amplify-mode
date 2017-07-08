@@ -82,7 +82,7 @@ If the TARGET-DIR already exists, skip the extraction."
 (cl-defun amplify/fetch-latest-release (project &key author)
   "Query GitHub for the latest release information for a PROJECT by AUTHOR.
 AUTHOR is a keyword argument that can be omitted, and defaults to \"jjpe\".
-This function uses the GitHub REST API v3. "
+This function uses the GitHub REST API v3."
   (let* ((author (or author "jjpe"))
          (url (format "https://api.github.com/repos/%s/%s/releases/latest"
                       author project)))
@@ -113,10 +113,7 @@ Files that already exist won't be downloaded again."
          (monto-url     (concat url-base "/" semver "/" monto-info))
          (monto-dbg-url (concat url-base "/" semver "/" monto-info "-dbg"))
          (monto-bin     (concat new-dir-path "/" monto-info))
-         (monto-dbg-bin (concat new-dir-path "/" monto-info "-dbg"))
-         ;; (settings-url "https://raw.githubusercontent.com/jjpe/spoofax-server/master/settings.json")
-         ;; (settings-file (concat new-dir-path "settings.json"))
-         )
+         (monto-dbg-bin (concat new-dir-path "/" monto-info "-dbg")))
     (unless (file-exists-p (amplify/subproc-path))
       (make-directory (amplify/subproc-path)))
     (unless (file-exists-p amplify/releases-dir)
@@ -130,9 +127,7 @@ Files that already exist won't be downloaded again."
     (amplify/download-resource monto-url monto-bin)
     (amplify/download-resource monto-dbg-url monto-dbg-bin)
     (set-file-modes monto-bin #o755)
-    (set-file-modes monto-dbg-bin #o755)
-    ;; (amplify/download-resource settings-url settings-file)
-    ))
+    (set-file-modes monto-dbg-bin #o755)))
 
 
 (defun amplify/switch-version (semver)
