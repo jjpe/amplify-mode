@@ -9,7 +9,8 @@ before_install:
 script:
 - ls -alh
 - ls -alh ${TRAVIS_BUILD_DIR}
-- zip -r ${TRAVIS_BUILD_DIR}/amplify-mode-${TRAVIS_TAG}.zip  ${TRAVIS_BUILD_DIR}/LICENSE  ${TRAVIS_BUILD_DIR}/*.el  ${TRAVIS_BUILD_DIR}/depend.el/
+- cd ${TRAVIS_BUILD_DIR}
+- zip -r ./amplify-mode-${TRAVIS_TAG}.zip ./LICENSE ./*.el ./depend.el
 deploy:
   provider: releases
   skip_cleanup: true
