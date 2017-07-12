@@ -117,8 +117,12 @@ If it already exists, it won't be downloaded again."
       (make-directory amplify/amplify-root-dir))
     (unless (file-exists-p amplify-dir-path)
       (make-directory amplify-dir-path))
-    (depend/download url bin)
-    (depend/download dbg-url dbg-bin)))
+    (if (file-exists-p bin)
+        (depend/log "Using cached bin @ %s" bin)
+      (depend/download url bin))
+    (if (file-exists-p dbg-bin)
+        (depend/log "Using cached dbg bin @ %s" dbg-bin)
+      (depend/download url dbg-bin))))
 
 (defun amplify/update-amplify-elisp ()
   "Update `amplify-elisp'.
@@ -137,8 +141,10 @@ If it already exists, it won't be downloaded again."
       (make-directory amplify/amplify-elisp-root-dir))
     (unless (file-exists-p amplify-elisp-dir-path)
       (make-directory amplify-elisp-dir-path))
-    (depend/download amplify-elisp-url amplify-elisp-zip)
-    (depend/extract-zip amplify-elisp-zip amplify-elisp-dir-path)))
+    (if (file-exists-p dbg-bin)
+        (depend/log "Using cached zip file @ %s" amplify-elisp-zip)
+      (progn (depend/download amplify-elisp-url amplify-elisp-zip)
+             (depend/extract-zip amplify-elisp-zip amplify-elisp-dir-path)))))
 
 (defun amplify/update-dependencies ()
   "Update the `amplify-mode' dependencies.
