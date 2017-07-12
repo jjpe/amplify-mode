@@ -119,10 +119,12 @@ If it already exists, it won't be downloaded again."
       (make-directory amplify-dir-path))
     (if (file-exists-p bin)
         (depend/log "Using cached bin @ %s" bin)
-      (depend/download url bin))
+      (progn (depend/download url bin)
+             (depend/make-executable bin)))
     (if (file-exists-p dbg-bin)
         (depend/log "Using cached dbg bin @ %s" dbg-bin)
-      (depend/download url dbg-bin))))
+      (progn (depend/download url dbg-bin)
+             (depend/make-executable dbg-bin)))))
 
 (defun amplify/update-amplify-elisp ()
   "Update `amplify-elisp'.
