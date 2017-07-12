@@ -53,7 +53,7 @@
    "cd " amplify/amplify-current-dir "; "
    ;; Start the binary:
    amplify/amplify-current-dir
-   "amplify-" amplify/amplify-version "-" amplify/current-os " broadcast"))
+   "/amplify-" amplify/amplify-version "-" amplify/current-os " broadcast"))
 
 (amplify/defprocess broadcaster-debug
   (concat
@@ -62,7 +62,7 @@
    "cd " amplify/amplify-current-dir "; "
    ;; Start the binary:
    amplify/amplify-current-dir
-   "amplify-" amplify/amplify-version "-" amplify/current-os "-dbg broadcast"))
+   "/amplify-" amplify/amplify-version "-" amplify/current-os "-dbg broadcast"))
 
 (provide 'amplify-broadcaster)
 ;;; amplify-broadcaster.el ends here
