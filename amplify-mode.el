@@ -72,7 +72,7 @@ explicitly included."
 
 
 
-(defvar amplify/semver "0.15.1")
+(defvar amplify/semver "0.15.2")
 
 ;; Download and load the `amplify' core:
 (defvar amplify/amplify-root-dir (amplify/subproc-path "amplify"))
