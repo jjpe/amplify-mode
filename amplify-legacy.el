@@ -1,5 +1,4 @@
 (require 'amplify-core)
-(require 'amplify-upgrade)
 
 ;; Monto legacy
 (amplify/defprocess brokers

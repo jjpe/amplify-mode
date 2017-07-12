@@ -39,11 +39,16 @@
 ;;; Commentary:
 
 ;;; Code:
-
+(unless (>= emacs-major-version 25)
+  (error "[amplify-mode] Only Emacs >= 25.1 is supported"))
 
 ;; Ensure Emacs can find the root directory
 (defvar amplify/root-directory (file-name-directory load-file-name)
   "The Amplify root directory.")
+
+(require 'depend (concat spoofax/root-directory "depend.el/depend.el"))
+
+
 
 (defvar load-path nil)
 (add-to-list 'load-path amplify/root-directory)
@@ -68,69 +73,85 @@ explicitly included."
 
 
 
-;; Code to download and load `amplify-elisp'
+;; Download and load the `amplify' core:
+(defvar amplify/amplify-root-dir (amplify/subproc-path "amplify"))
+(defvar amplify/amplify-version "0.14.0")
+(defvar amplify/amplify-current-dir
+  (concat amplify/amplify-root-dir "/" amplify/amplify-version))
+
+;; Download and load `amplify-elisp':
 (defvar amplify/amplify-elisp-root-dir (amplify/subproc-path "amplify-elisp"))
-
 (defvar amplify/amplify-elisp-version "0.14.2")
-
 (defvar amplify/amplify-elisp-current-dir
   (concat amplify/amplify-elisp-root-dir "/" amplify/amplify-elisp-version))
 
-(defun amplify/download-resource (url file-name)
-  "Download a resource from URL to FILE-NAME."
-  (condition-case nil
-      (url-copy-file url file-name)
-    (error ; file-already-exists
-     (message "[amplify] using cached resource @ %s" file-name))))
 
-(defun amplify/extract-amplify-elisp (archive-file-name target-dir)
-  "Extract an archive, located at ARCHIVE-FILE-NAME, to a TARGET-DIR.
-If the TARGET-DIR already exists, skip the extraction."
-  (unless (file-exists-p target-dir)
-    (make-directory target-dir))
-  (shell-command (concat "unzip " archive-file-name " -d " target-dir))
-  (message "[amplify] extracted %s  to  %s" archive-file-name target-dir))
 
-(defun amplify/amplify-elisp-query-latest-release ()
-  "Query GitHub for the latest `amplify-elisp' release information."
-  (amplify/fetch-latest-release "amplify-elisp"))
 
-(cl-defun amplify/fetch-latest-release (project &key author)
-  "Query GitHub for the latest release information for a PROJECT by AUTHOR.
-AUTHOR is a keyword argument that can be omitted, and defaults to \"jjpe\".
-This function uses the GitHub REST API v3. "
-  (let* ((author (or author "jjpe"))
-         (url (format "https://api.github.com/repos/%s/%s/releases/latest"
-                      author project)))
-    (with-current-buffer (url-retrieve-synchronously url)
-      (->> (json-read)
-           (assoc 'tag_name)
-           cdr))))
 
-(defun amplify/amplify-elisp-download-release (semver)
-  "Download an `amplify-elisp' release with a specific SEMVER.
+(defun amplify/update-amplify ()
+  "Update the `amplify' core.
 Specifically the following is downloaded:
- * amplify-elisp-SEMVER.zip, which contains `amplify-elisp'.
+ * `amplify'-`SEMVER'-`OS'.zip
+ * `amplify'-`SEMVER'-`OS'-dbg.zip
+For each dependency the corresponding `SEMVER's are looked up on github.com.
+The `OS' will be automatically detected.
 If it already exists, it won't be downloaded again."
-  (let* ((new-dir-path (amplify/subproc-path "amplify-elisp/" semver "/"))
-         (url-base "https://github.com/jjpe/amplify-elisp/releases/download/")
-         (amplify-elisp-url (concat url-base semver "/amplify-elisp-" semver ".zip"))
-         (amplify-elisp-zip (concat new-dir-path "amplify-elisp-" semver ".zip")))
+  (let* ((semver (depend/query-github-release "jjpe" "amplify"))
+         (amplify-dir-path (amplify/subproc-path "amplify/" semver))
+         (os (pcase system-type
+               ('darwin       "osx")
+               ;; ('gnu/linux    "linux-x86-64") ;; TODO:
+               ('gnu/linux    "linux")
+               ;; TODO: Windows support
+               (_ (error "Operating system '%s' is not supported" system-type))))
+         (url-base "https://github.com/jjpe/amplify/releases/download")
+         (url (concat url-base "/" semver "/amplify-" semver "-" os))
+         (bin (concat amplify-dir-path    "/amplify-" semver "-" os))
+         (dbg-url (concat url-base "/" semver "/amplify-" semver "-" os "-dbg"))
+         (dbg-bin (concat amplify-dir-path    "/amplify-" semver "-" os "-dbg")))
     (unless (file-exists-p (amplify/subproc-path))
       (make-directory (amplify/subproc-path)))
-    (unless (file-exists-p amplify/amplify-elisp-root-dir)
+    (unless (file-exists-p amplify/amplify-root-dir) ;; TODO:
+      (make-directory amplify/amplify-root-dir))
+    (unless (file-exists-p amplify-dir-path)
+      (make-directory amplify-dir-path))
+    (depend/download url bin)
+    (depend/download dbg-url dbg-bin)))
+
+(defun amplify/update-amplify-elisp ()
+  "Update `amplify-elisp'.
+Specifically the following is downloaded:
+ * `amplify-elisp'-`SEMVER'.zip
+For each dependency the corresponding `SEMVER's are looked up on github.com.
+If it already exists, it won't be downloaded again."
+  (let* ((semver (depend/query-github-release "jjpe" "amplify-elisp"))
+         (amplify-elisp-dir-path (amplify/subproc-path "amplify-elisp/" semver))
+         (url-base "https://github.com/jjpe/amplify-elisp/releases/download/")
+         (amplify-elisp-url (concat url-base semver "/amplify-elisp-" semver ".zip"))
+         (amplify-elisp-zip (concat amplify-elisp-dir-path "/amplify-elisp-" semver ".zip")))
+    (unless (file-exists-p (amplify/subproc-path))
+      (make-directory (amplify/subproc-path)))
+    (unless (file-exists-p amplify/amplify-elisp-root-dir) ;; TODO:
       (make-directory amplify/amplify-elisp-root-dir))
-    (unless (file-exists-p (amplify/subproc-path "amplify-elisp/"))
-      (make-directory (amplify/subproc-path "amplify-elisp/")))
-    (unless (file-exists-p new-dir-path)
-      (make-directory new-dir-path))
-    (amplify/download-resource amplify-elisp-url amplify-elisp-zip)
-    (amplify/extract-amplify-elisp amplify-elisp-zip new-dir-path)))
+    (unless (file-exists-p amplify-elisp-dir-path)
+      (make-directory amplify-elisp-dir-path))
+    (depend/download amplify-elisp-url amplify-elisp-zip)
+    (depend/extract-zip amplify-elisp-zip amplify-elisp-dir-path)))
+
+(defun amplify/update-dependencies ()
+  "Update the `amplify-mode' dependencies.
+Specifically the following is downloaded:
+ * `amplify-elisp'-`SEMVER'.zip
+For each dependency the corresponding `SEMVER's are looked up on github.com.
+Dependencies that already exist on the file system won't be downloaded again."
+  (amplify/update-amplify)
+  (amplify/update-amplify-elisp))
 
 
 
 ;; This needs to complete successfully BEFORE requiring `amplify-elisp':
-(amplify/amplify-elisp-download-release  amplify/amplify-elisp-version)
+(amplify/update-dependencies)
 
 
 
@@ -140,7 +161,6 @@ If it already exists, it won't be downloaded again."
                                               "/amplify-elisp.el"))
 
 (require 'amplify-core        (amplify/path "amplify-core.el"))
-(require 'amplify-upgrade     (amplify/path "amplify-upgrade.el"))
 (require 'amplify-broadcaster (amplify/path "amplify-broadcaster.el"))
 (require 'amplify-source      (amplify/path "amplify-source.el"))
 (require 'amplify-sink        (amplify/path "amplify-sink.el"))
