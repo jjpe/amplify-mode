@@ -4,9 +4,15 @@
 
 ;;; Code:
 
-(require 'dash) ;; threading macros
+(unless (package-installed-p 'dash)
+  (package-install 'dash))
+(unless (package-installed-p 'json)
+  (package-install 'json))
 
-(defvar depend/semver "0.5.3"
+(require 'dash) ;; threading macros
+(require 'json)
+
+(defvar depend/semver "0.5.4"
   "The semantic version of this depend.el release.")
 
 (defvar depend/bin-semver "0.1.0"

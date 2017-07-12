@@ -82,7 +82,7 @@ explicitly included."
 
 ;; Download and load `amplify-elisp':
 (defvar amplify/amplify-elisp-root-dir (amplify/subproc-path "amplify-elisp"))
-(defvar amplify/amplify-elisp-version "0.15.1")
+(defvar amplify/amplify-elisp-version "0.15.2")
 (defvar amplify/amplify-elisp-current-dir
   (concat amplify/amplify-elisp-root-dir "/" amplify/amplify-elisp-version))
 
