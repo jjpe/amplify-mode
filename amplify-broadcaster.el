@@ -50,18 +50,18 @@
   (concat
    ;; Change dir because Amplify loads the settings from a file relative
    ;; to the "current" directory:
-   "cd " amplify/current-release-dir "; "
+   "cd " amplify/amplify-current-dir "; "
    ;; Start the binary:
-   amplify/current-release-dir
+   amplify/amplify-current-dir
    "amplify-" amplify/amplify-version "-" amplify/current-os " broadcast"))
 
 (amplify/defprocess broadcaster-debug
   (concat
    ;; Change dir because Amplify loads the settings from a file relative
    ;; to the "current" directory:
-   "cd " amplify/current-release-dir "; "
+   "cd " amplify/amplify-current-dir "; "
    ;; Start the binary:
-   amplify/current-release-dir
+   amplify/amplify-current-dir
    "amplify-" amplify/amplify-version "-" amplify/current-os "-dbg broadcast"))
 
 (provide 'amplify-broadcaster)
