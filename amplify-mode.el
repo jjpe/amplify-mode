@@ -141,7 +141,7 @@ If it already exists, it won't be downloaded again."
       (make-directory amplify/amplify-elisp-root-dir))
     (unless (file-exists-p amplify-elisp-dir-path)
       (make-directory amplify-elisp-dir-path))
-    (if (file-exists-p dbg-bin)
+    (if (file-exists-p amplify-elisp-zip)
         (depend/log "Using cached zip file @ %s" amplify-elisp-zip)
       (progn (depend/download amplify-elisp-url amplify-elisp-zip)
              (depend/extract-zip amplify-elisp-zip amplify-elisp-dir-path)))))
