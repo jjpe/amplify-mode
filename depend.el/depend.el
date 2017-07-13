@@ -12,7 +12,7 @@
 (require 'dash) ;; threading macros
 (require 'json)
 
-(defvar depend/semver "0.5.6"
+(defvar depend/semver "0.6.0"
   "The semantic version of this depend.el release.")
 
 (defvar depend/bin-semver "0.1.0"
@@ -77,16 +77,6 @@ Each entry in the list must be a (NAME . SEMVER) cons where:
         (car))))
 
 
-(cl-defun depend/query-github-release (author project)
-  "Query GitHub for the latest release of a PROJECT by AUTHOR.
-This function uses the GitHub REST API v3."
-  (let ((url (format "https://api.github.com/repos/%s/%s/releases/latest"
-                     author project)))
-    (with-current-buffer (url-retrieve-synchronously url)
-      (->> (json-read)
-           (assoc 'tag_name)
-           cdr))))
-
 
 (defun depend/command-bool (cmd &rest args)
   "Execute a `CMD' with any `ARGS', and return the success status as a boolean.
@@ -127,12 +117,6 @@ If the TARGET-DIR-PATH already exists, skip the extraction."
       (goto-char (point-max))
       (and (depend/command-bool "unzip" zip-file-path "-d" target-dir-path)
            (depend/log "Extracted \"%s\" to \"%s\"" zip-file-path target-dir-path)))))
-
-(defun depend/wait-for-resource (dir-path)
-  "Block until the resource @ DIR-PATH exists on the file system."
-  (depend/log "Waiting for resource @ %s" dir-path)
-  (while (not (file-exists-p dir-path))
-    nil))
 
 (provide 'depend)
 ;;; depend.el ends here
