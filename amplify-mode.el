@@ -93,8 +93,8 @@ explicitly included."
 (defun amplify/update-amplify ()
   "Update the `amplify' core.
 Specifically the following is downloaded:
- * `amplify'-`SEMVER'-`OS'.zip
- * `amplify'-`SEMVER'-`OS'-dbg.zip
+ * `amplify'-`SEMVER'-`OS'
+ * `amplify'-`SEMVER'-`OS'-dbg
 For each dependency the corresponding `SEMVER's are looked up on github.com.
 The `OS' will be automatically detected.
 If it already exists, it won't be downloaded again."
@@ -162,7 +162,12 @@ Dependencies that already exist on the file system won't be downloaded again."
 ;; This needs to complete successfully BEFORE requiring `amplify-elisp':
 (amplify/update-dependencies)
 
+(let* ((dir (amplify/subproc-path "amplify/" amplify/amplify-version)))
+  (depend/wait-for-resource (concat dir "/amplify-" amplify/amplify-version "-osx"))
+  (depend/wait-for-resource (concat dir "/amplify-" amplify/amplify-version "-osx-dbg")))
 
+(let* ((dir (amplify/subproc-path "amplify-elisp/" amplify/amplify-elisp-version)))
+  (depend/wait-for-resource (concat dir "/amplify-elisp-" amplify/amplify-elisp-version ".zip")))
 
 
 (require 'amplify-elisp (amplify/subproc-path "amplify-elisp/"
