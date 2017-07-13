@@ -98,8 +98,7 @@ Specifically the following is downloaded:
 For each dependency the corresponding `SEMVER's are looked up on github.com.
 The `OS' will be automatically detected.
 If it already exists, it won't be downloaded again."
-  (let* (;; (semver (depend/query-github-release "jjpe" "amplify"))
-         (semver amplify/amplify-version) ;; FIXME: the line above can fail
+  (let* ((semver amplify/amplify-version)
          (amplify-dir-path (amplify/subproc-path "amplify/" semver))
          (os (pcase system-type
                ('darwin       "osx")
@@ -133,8 +132,7 @@ Specifically the following is downloaded:
  * `amplify-elisp'-`SEMVER'.zip
 For each dependency the corresponding `SEMVER's are looked up on github.com.
 If it already exists, it won't be downloaded again."
-  (let* (;; (semver (depend/query-github-release "jjpe" "amplify-elisp"))
-         (semver amplify/amplify-elisp-version) ;; FIXME: the line above can fail
+  (let* ((semver amplify/amplify-elisp-version)
          (amplify-elisp-dir-path (amplify/subproc-path "amplify-elisp/" semver))
          (url-base "https://github.com/jjpe/amplify-elisp/releases/download/")
          (amplify-elisp-url (concat url-base semver "/amplify-elisp-" semver ".zip"))
@@ -163,13 +161,6 @@ Dependencies that already exist on the file system won't be downloaded again."
 
 ;; This needs to complete successfully BEFORE requiring `amplify-elisp':
 (amplify/update-dependencies)
-
-;; (let* ((dir (amplify/subproc-path "amplify/" amplify/amplify-version)))
-;;   (depend/wait-for-resource (concat dir "/amplify-" amplify/amplify-version "-osx"))
-;;   (depend/wait-for-resource (concat dir "/amplify-" amplify/amplify-version "-osx-dbg")))
-
-;; (let* ((dir (amplify/subproc-path "amplify-elisp/" amplify/amplify-elisp-version)))
-;;   (depend/wait-for-resource (concat dir "/amplify-elisp-" amplify/amplify-elisp-version ".zip")))
 
 
 (require 'amplify-elisp (amplify/subproc-path "amplify-elisp/"
