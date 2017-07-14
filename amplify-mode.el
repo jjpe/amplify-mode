@@ -68,7 +68,17 @@ explicitly included."
   "Return the path to a file located in one of the sub-processes."
   (apply #'amplify/path "subproc/" subpath-specs))
 
+(defvar amplify/debug t
+  "Set to t to turn on debug mode.")
 
+(defvar amplify/os
+  (pcase system-type
+    ('darwin       "osx")
+    ('gnu/linux    "linux")
+    ;; ('gnu/linux    "linux-x86-64") ;; TODO:
+    ;; TODO: Windows support
+    (_ (error "Operating system '%s' is not supported" system-type)))
+  "A tag associated with the current operating system.")
 
 
 
@@ -98,25 +108,26 @@ Specifically the following is downloaded:
 For each dependency the corresponding `SEMVER's are looked up on github.com.
 The `OS' will be automatically detected.
 If it already exists, it won't be downloaded again."
-  (let* ((semver amplify/amplify-version)
-         (amplify-dir-path (amplify/subproc-path "amplify/" semver))
-         (os (pcase system-type
-               ('darwin       "osx")
-               ;; ('gnu/linux    "linux-x86-64") ;; TODO:
-               ('gnu/linux    "linux")
-               ;; TODO: Windows support
-               (_ (error "Operating system '%s' is not supported" system-type))))
-         (url-base "https://github.com/jjpe/amplify/releases/download")
-         (url (concat url-base "/" semver "/amplify-" semver "-" os))
-         (bin (concat amplify-dir-path    "/amplify-" semver "-" os))
-         (dbg-url (concat url-base "/" semver "/amplify-" semver "-" os "-dbg"))
-         (dbg-bin (concat amplify-dir-path    "/amplify-" semver "-" os "-dbg")))
+  (let* ((path-base (amplify/subproc-path "amplify/" amplify/amplify-version))
+         (url-base (format "https://github.com/jjpe/%s/releases/download/%s"
+                           "amplify"
+                           amplify/amplify-version))
+         (bin-name     (format "amplify-%s-%s"
+                               amplify/amplify-version
+                               amplify/os))
+         (dbg-bin-name (format "amplify-%s-%s-dbg"
+                               amplify/amplify-version
+                               amplify/os))
+         (url     (concat url-base  "/" bin-name))
+         (bin     (concat path-base "/" bin-name))
+         (dbg-url (concat url-base  "/" dbg-bin-name))
+         (dbg-bin (concat path-base "/" dbg-bin-name)))
     (unless (file-exists-p (amplify/subproc-path))
       (make-directory (amplify/subproc-path)))
     (unless (file-exists-p amplify/amplify-root-dir) ;; TODO:
       (make-directory amplify/amplify-root-dir))
-    (unless (file-exists-p amplify-dir-path)
-      (make-directory amplify-dir-path))
+    (unless (file-exists-p path-base)
+      (make-directory path-base))
     (if (file-exists-p bin)
         (depend/log "Using cached bin @ %s" bin)
       (progn (depend/download url bin)
@@ -132,21 +143,24 @@ Specifically the following is downloaded:
  * `amplify-elisp'-`SEMVER'.zip
 For each dependency the corresponding `SEMVER's are looked up on github.com.
 If it already exists, it won't be downloaded again."
-  (let* ((semver amplify/amplify-elisp-version)
-         (amplify-elisp-dir-path (amplify/subproc-path "amplify-elisp/" semver))
-         (url-base "https://github.com/jjpe/amplify-elisp/releases/download/")
-         (amplify-elisp-url (concat url-base semver "/amplify-elisp-" semver ".zip"))
-         (amplify-elisp-zip (concat amplify-elisp-dir-path "/amplify-elisp-" semver ".zip")))
+  (let* ((path-base (amplify/subproc-path "amplify-elisp/"
+                                          amplify/amplify-elisp-version))
+         (url-base (format "https://github.com/jjpe/%s/releases/download/%s"
+                           "amplify-elisp"
+                           amplify/amplify-elisp-version))
+         (zip-name (format "amplify-elisp-%s.zip" amplify/amplify-elisp-version))
+         (url      (concat url-base  "/" zip-name))
+         (zip-file (concat path-base "/" zip-name)))
     (unless (file-exists-p (amplify/subproc-path))
       (make-directory (amplify/subproc-path)))
     (unless (file-exists-p amplify/amplify-elisp-root-dir) ;; TODO:
       (make-directory amplify/amplify-elisp-root-dir))
-    (unless (file-exists-p amplify-elisp-dir-path)
-      (make-directory amplify-elisp-dir-path))
-    (if (file-exists-p amplify-elisp-zip)
-        (depend/log "Using cached zip file @ %s" amplify-elisp-zip)
-      (progn (depend/download amplify-elisp-url amplify-elisp-zip)
-             (depend/extract-zip amplify-elisp-zip amplify-elisp-dir-path)))))
+    (unless (file-exists-p path-base)
+      (make-directory path-base))
+    (if (file-exists-p zip-file)
+        (depend/log "Using cached zip file @ %s" zip-file)
+      (progn (depend/download amplify-elisp-url zip-file)
+             (depend/extract-zip zip-file path-base)))))
 
 (defun amplify/update-dependencies ()
   "Update the `amplify-mode' dependencies.
