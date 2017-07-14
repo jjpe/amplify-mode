@@ -161,7 +161,7 @@ If it already exists, it won't be downloaded again."
       (make-directory path-base))
     (if (file-exists-p zip-file)
         (depend/log "Using cached zip file @ %s" zip-file)
-      (progn (depend/download amplify-elisp-url zip-file)
+      (progn (depend/download url zip-file)
              (depend/extract-zip zip-file path-base)))))
 
 (defun amplify/update-dependencies ()
