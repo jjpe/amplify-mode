@@ -1,3 +1,4 @@
 .DS_Store
 *.elc
-flycheck_depend.el
+flycheck_*.el
+target/
