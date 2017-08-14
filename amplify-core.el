@@ -48,16 +48,6 @@
 (require 'amplify-log)
 
 
-(defvar amplify/current-os
-  (pcase system-type
-    ('darwin       "osx")
-    ('gnu/linux    "linux")
-    ;; TODO: Windows support
-    (_ (error "Operating system '%s' is not supported" system-type)))
-  "A tag associated with the current operating system.
-This tag is e.g. used to find out which binaries to download.")
-
-
 
 (defun spoofax/read-string-from-file (file-path)
   "Return the contents of FILE-PATH as a string."
