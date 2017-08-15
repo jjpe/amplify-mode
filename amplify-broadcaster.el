@@ -40,12 +40,6 @@
 
 (require 'amplify-core     (amplify/path "amplify-core.el"))
 
-;; (amplify/defprocess version-broker
-;;   (amplify/subproc-path "yang/target/debug/version_broker"))
-
-;; (amplify/defprocess product-broker
-;;   (amplify/subproc-path "yang/target/debug/product_broker"))
-
 (amplify/defprocess broadcaster
   (concat
    ;; Change dir because Amplify loads the settings from a file relative
