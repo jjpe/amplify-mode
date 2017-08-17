@@ -62,6 +62,7 @@
 
 (defun amplify/run-benchmark ()
   "Run the benchmark as defined in Amplify.toml."
+  (interactive)
   (unless (process-live-p (get-process "*Benchmark*"))
     (amplify/start-benchmark!)))
 
