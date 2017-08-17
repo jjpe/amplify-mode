@@ -188,6 +188,7 @@ Dependencies that already exist on the file system won't be downloaded again."
 (require 'amplify-source      (amplify/path "amplify-source.el"))
 (require 'amplify-sink        (amplify/path "amplify-sink.el"))
 (require 'amplify-collector   (amplify/path "amplify-collector.el"))
+(require 'amplify-benchmark   (amplify/path "amplify-benchmark.el"))
 
 
 
@@ -244,10 +245,9 @@ That will make it easier to build IDE-like functionality for multiple languages.
 
   (unless (process-live-p (get-process "*Broadcaster*"))
     ;; (amplify/start-broadcaster-dbg!)
-    ;; (monto/start-brokers!)
-    ;; (monto/start-brokers-dbg!)
     (amplify/start-broadcaster!))
   (unless (process-live-p (get-process "*Collector*"))
+    ;; (amplify/start-collector-dbg!)
     (amplify/start-collector!))
 
   (amplify/sink-connect)
