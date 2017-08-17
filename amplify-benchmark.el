@@ -65,23 +65,5 @@
   (unless (process-live-p (get-process "*Benchmark*"))
     (amplify/start-benchmark!)))
 
-;; (cl-defun amplify/collector-send-cmd (cmd)
-;;   "Send a command to the collector."
-;;   (amplify/source-send :kind (concat "collector:" cmd)
-;;                        :buffer (current-buffer)))
-
-;; (defun amplify/kill-collector ()
-;;   "Ask the collector process to die."
-;;   (interactive)
-;;   (amplify/collector-send-cmd "exit"))
-
-;; (defun amplify/flush-collector ()
-;;   "Ask the *Collector* process to persist the `msg's it has collected so far.
-;; After this is completed, the `msg's are erased from RAM.
-;; This means that so the next flush will only persist the `msg's since then."
-;;   (interactive)
-;;   (amplify/collector-send-cmd "flush"))
-
-
 (provide 'amplify-benchmark)
 ;;; amplify-benchmark.el ends here
