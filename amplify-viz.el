@@ -48,8 +48,8 @@
 
 
 (defun amplify/open-viz-client ()
-  (interactive)
   "Open the amplify-viz client in a browser.  Start the server if necessary."
+  (interactive)
   (unless (process-live-p (get-process "*Viz*"))
     (amplify/start-viz!))
   (browse-url "http://localhost:3000"))
