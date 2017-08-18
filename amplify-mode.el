@@ -98,6 +98,12 @@ explicitly included."
 (defvar amplify/amplify-elisp-current-dir
   (concat amplify/amplify-elisp-root-dir "/" amplify/amplify-elisp-version))
 
+;; Download and load `amplify-viz':
+(defvar amplify/amplify-viz-root-dir (amplify/subproc-path "amplify-viz"))
+(defvar amplify/amplify-viz-version "1.0.6")
+(defvar amplify/amplify-viz-current-dir
+  (concat amplify/amplify-viz-root-dir "/" amplify/amplify-viz-version))
+
 
 
 
@@ -164,6 +170,31 @@ If it already exists, it won't be downloaded again."
       (progn (depend/download url zip-file)
              (depend/extract-zip zip-file path-base)))))
 
+(defun amplify/update-amplify-viz ()
+  "Update `amplify-viz'.
+Specifically the following is downloaded:
+ * `amplify-viz'-`SEMVER'.zip
+For each dependency the corresponding `SEMVER's are looked up on github.com.
+If it already exists, it won't be downloaded again."
+  (let* ((path-base (amplify/subproc-path "amplify-viz/"
+                                          amplify/amplify-viz-version))
+         (url-base (format "https://github.com/jjpe/%s/releases/download/%s"
+                           "amplify-viz"
+                           amplify/amplify-viz-version))
+         (zip-name (format "amplify-viz-%s.zip" amplify/amplify-viz-version))
+         (url      (concat url-base  "/" zip-name))
+         (zip-file (concat path-base "/" zip-name)))
+    (unless (file-exists-p (amplify/subproc-path))
+      (make-directory (amplify/subproc-path)))
+    (unless (file-exists-p amplify/amplify-viz-root-dir) ;; TODO:
+      (make-directory amplify/amplify-viz-root-dir))
+    (unless (file-exists-p path-base)
+      (make-directory path-base))
+    (if (file-exists-p zip-file)
+        (depend/log "Using cached zip file @ %s" zip-file)
+      (progn (depend/download url zip-file)
+             (depend/extract-zip zip-file path-base)))))
+
 (defun amplify/update-dependencies ()
   "Update the `amplify-mode' dependencies.
 Specifically the following is downloaded:
@@ -171,7 +202,8 @@ Specifically the following is downloaded:
 For each dependency the corresponding `SEMVER's are looked up on github.com.
 Dependencies that already exist on the file system won't be downloaded again."
   (amplify/update-amplify)
-  (amplify/update-amplify-elisp))
+  (amplify/update-amplify-elisp)
+  (amplify/update-amplify-viz))
 
 
 
@@ -189,6 +221,7 @@ Dependencies that already exist on the file system won't be downloaded again."
 (require 'amplify-sink        (amplify/path "amplify-sink.el"))
 (require 'amplify-collector   (amplify/path "amplify-collector.el"))
 (require 'amplify-benchmark   (amplify/path "amplify-benchmark.el"))
+(require 'amplify-viz         (amplify/path "amplify-viz.el"))
 
 
 
