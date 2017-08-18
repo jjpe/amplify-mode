@@ -48,6 +48,7 @@
 
 
 (defun amplify/open-viz-client ()
+  (interactive)
   "Open the amplify-viz client in a browser.  Start the server if necessary."
   (unless (process-live-p (get-process "*Viz*"))
     (amplify/start-viz!))
