@@ -43,8 +43,9 @@
 
 (amplify/defprocess viz
   (concat
-   "cd " amplify/amplify-viz-current-dir ";"
-   "node server.js;"))
+   "cd " amplify/amplify-viz-current-dir " && "
+   "npm install && "
+   "node server.js ;"))
 
 
 (defun amplify/open-viz-client ()
