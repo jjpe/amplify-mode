@@ -94,13 +94,13 @@ explicitly included."
 
 ;; Download and load `amplify-elisp':
 (defvar amplify/amplify-elisp-root-dir (amplify/subproc-path "amplify-elisp"))
-(defvar amplify/amplify-elisp-version "0.16.3")
+(defvar amplify/amplify-elisp-version "0.17.0")
 (defvar amplify/amplify-elisp-current-dir
   (concat amplify/amplify-elisp-root-dir "/" amplify/amplify-elisp-version))
 
 ;; Download and load `amplify-viz':
 (defvar amplify/amplify-viz-root-dir (amplify/subproc-path "amplify-viz"))
-(defvar amplify/amplify-viz-version "1.0.6")
+(defvar amplify/amplify-viz-version "1.1.0")
 (defvar amplify/amplify-viz-current-dir
   (concat amplify/amplify-viz-root-dir "/" amplify/amplify-viz-version))
 
