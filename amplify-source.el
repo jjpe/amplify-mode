@@ -174,6 +174,30 @@ AST: either nil (default) or a plistified AST, see `amplify-elisp/ast-plistify'.
                                      msg))
           ((eq result nil)         msg))))
 
+(cl-defun amplify/report (&key kind contents)
+  "Make the Source send a report message.  The following keys are significant:
+KIND: What the Msg represents, e.g. 'parse', 'analyze', 'analysis result',
+    'syntax coloring' etc.
+CONTENTS: The Msg contents.  May be nil, a string, or a list of strings."
+  (unless amplify/source
+    (error "Source is not connected"))
+  (let* ((process "emacs")
+         (request-number (amplify/next-request-number))
+         (msg (amplify-elisp/msg :process process
+                                 :request-number request-number
+                                 :kind kind
+                                 :contents contents))
+         (result (amplify-elisp/cclient-send amplify/source msg)))
+    (cond ((eq result :reconnect)  (progn
+                                     (amplify/source-reconnect) ;; TODO: what does this even return?!
+                                     (amplify/log "ERROR: failed to send msg[%s, %d]: %s"
+                                                  process  request-number  kind)))
+          ((eq result t)           (progn
+                                     (amplify/log "sent msg[%s, %d]: %s"
+                                                  process  request-number  kind)
+                                     msg))
+          ((eq result nil)         msg))))
+
 
 (provide 'amplify-source)
 ;;; amplify-source.el ends here
