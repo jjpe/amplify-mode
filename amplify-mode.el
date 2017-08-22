@@ -227,9 +227,19 @@ Dependencies that already exist on the file system won't be downloaded again."
 
 
 (defcustom amplify/sink-functions nil
-  "A list of hooks run when Amplify receives a MSG.
-Deriving modes can use this to asynchronously get access.
-To do so, functions are added to this list that take an arg list (BUFFER MSG)."
+  "A list of hooks run when Amplify receives a msg with certain properties.
+The properties are:
+  * The msg must have a `request-number' field equal to `amplify/request-number'
+Deriving modes can use this to asynchronously get access to the msg.
+To do so, functions are added to this list that take a msg argument."
+  :options '(imenu-add-menubar-index)
+  :type 'hook
+  :group 'amplify)
+
+(defcustom amplify/raw-sink-functions nil
+  "A list of hooks run when Amplify receives a msg.
+Deriving modes can use this to asynchronously get access to the msg.
+To do so, functions are added to this list that take a msg argument."
   :options '(imenu-add-menubar-index)
   :type 'hook
   :group 'amplify)

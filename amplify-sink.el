@@ -173,6 +173,7 @@ If there is, call `amplify/sink-functions' in each amplify buffer."
            (msg-kind    (plist-get msg-plist :kind)))
       (when (or  (not (listp msg-plist))  (amplify/is-null-msg? msg-plist))
         (return-from 'amplify/sink-timer-fn nil))
+      (run-hook-with-args  'amplify/raw-sink-functions  msg-plist)
       (unless (eq amplify/request-number msg-reqno)
         ;; Ignore old messages
         (amplify/log "ignoring old msg[%s, %d]: %s"  msg-process  msg-reqno  msg-kind)
