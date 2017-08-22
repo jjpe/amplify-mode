@@ -78,7 +78,7 @@
                           (amplify/sink-connect)))
       (_  (->> (amplify-elisp/msg-plistify msg)
                (amplify/drop-msg-if ;; Drop msgs sent by Emacs
-                (lambda (msg) (string-prefix-p "emacs " (plist-get msg :process))))
+                (lambda (msg) (string-prefix-p "emacs" (plist-get msg :process))))
                ;; Add more filters here
                )))))
 

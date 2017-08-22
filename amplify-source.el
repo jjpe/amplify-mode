@@ -164,15 +164,15 @@ AST: either nil (default) or a plistified AST, see `amplify-elisp/ast-plistify'.
                                  :language language
                                  :ast ast))
          (result (amplify-elisp/cclient-send amplify/source msg)))
-    (cond ((eq result :reconnect)  (progn
-                                     (amplify/source-reconnect) ;; TODO: what does this even return?!
-                                     (amplify/log "ERROR: failed to send msg[%s, %d]: %s"
-                                                  process  request-number  kind)))
-          ((eq result t)           (progn
-                                     (amplify/log "sent msg[%s, %d]: %s"
-                                                  process  request-number  kind)
-                                     msg))
-          ((eq result nil)         msg))))
+    (cond ((eq result :reconnect)
+           (progn (amplify/source-reconnect)
+                  (amplify/log "ERROR: failed to send msg[%s, %d]: %s"
+                               process  request-number  kind)))
+          ((eq result t)
+           (progn (amplify/log "sent msg[%s, %d]: %s"
+                               process  request-number  kind)
+                  msg))
+          ((eq result nil)    msg))))
 
 (cl-defun amplify/report (&key request-number kind contents)
   "Make the Source send a report message.  The following keys are significant:
