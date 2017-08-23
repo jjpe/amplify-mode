@@ -41,11 +41,51 @@
 (unless (>= emacs-major-version 25)
   (error "[amplify-mode] Only Emacs >= 25.1 is supported"))
 
-(unless (package-installed-p 'dash)
-  (package-install 'dash))
+(unless (package-installed-p 'dash)  (package-install 'dash))
+(unless (package-installed-p 'pp)    (package-install 'pp))
+(unless (package-installed-p 'toml)  (package-install 'toml))
 
 (require 'dash) ;; Threading operators (->, ->>)
 (require 'amplify-log)
+(require 'toml)
+
+
+(cl-defun amplify/find-amplify-toml-file ()
+  "Search recursively for Amplify.toml in ancestor directories.
+Return the file path to it, or nil if no Amplify.toml was found."
+  (cl-block 'spoofax/find-amplify-toml-file
+    (let ((dir amplify/root-directory))
+      (while (not (string= "/" dir))
+        (if (member "Amplify.toml" (directory-files dir)) ;; Found Amplify.toml
+            (return-from 'spoofax/find-amplify-toml-file
+              (concat dir "Amplify.toml"))
+          (setq dir (file-name-directory (directory-file-name dir))))))))
+
+(defun amplify/read-amplify-toml-file ()
+  "Find and read Amplify.toml."
+  (->> (amplify/find-amplify-toml-file)
+       (toml:read-from-file)
+       (pp)
+       (read-from-string)
+       (first)))
+
+(defun amplify/get-amplify-toml-settings ()
+  "Retrieve the Amplify.toml settings relevant to `amplify-mode'.
+This consists of 2 parts:
+1. The global keys
+2. The keys under the \"emacs__spoofax_mode\" header"
+  (let* ((settings (amplify/read-amplify-toml-file))
+         ;; Global keys:
+         (quiet             (assoc "quiet"               settings))
+         (client-send-addr  (assoc "client_send_addr"    settings))
+         (client-recv-addr  (assoc "client_receive_addr" settings))
+         ;; Keys under the emacs__spoofax_mode header:
+         (emacs/spoofax-mode  (assoc "emacs__spoofax_mode" settings))
+         (promiscuous       (assoc "promiscuous"         emacs/spoofax-mode)))
+    (list :quiet            (cdr quiet)
+          :client-send-addr (cdr client-send-addr)
+          :client-recv-addr (cdr client-recv-addr)
+          :promiscuous      (cdr promiscuous))))
 
 
 
