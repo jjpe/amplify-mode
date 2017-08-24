@@ -59,7 +59,8 @@ Return the file path to it, or nil if no Amplify.toml was found."
         (if (member "Amplify.toml" (directory-files dir)) ;; Found Amplify.toml
             (return-from 'spoofax/find-amplify-toml-file
               (concat dir "Amplify.toml"))
-          (setq dir (file-name-directory (directory-file-name dir))))))))
+          (setq dir (file-name-directory (directory-file-name dir)))))
+      (error "Amplify.toml not found in any ancestor directory"))))
 
 (defun amplify/read-amplify-toml-file ()
   "Find and read Amplify.toml."
